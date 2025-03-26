@@ -1,0 +1,7 @@
+[workspace]
+resolver = "3"
+members = ["crates/builder", "crates/cli"]
+
+[workspace.dependencies]
+builder = { path = "crates/builder" }
+cli = { path = "crates/cli" }

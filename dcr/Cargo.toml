@@ -1,0 +1,3 @@
+[workspace]
+resolver = "3"
+members = ["crates/containerd-client", "crates/cli", "crates/cli2"]

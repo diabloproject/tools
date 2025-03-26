@@ -1,0 +1,10 @@
+[package]
+name = "builder"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+rust_lisp = "0.18.0"
+thiserror = "2.0.12"
+home = "0.5.11"
+
