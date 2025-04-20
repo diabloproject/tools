@@ -22,56 +22,83 @@ macro_rules! check {
     };
 }
 
-
-
 pub(crate) fn spec<E>(_: E, args: Vec<Value>) -> Result<Value, RuntimeError> {
     check!(args.len() != 0, "expected at least one argument");
 
-    let spec = Arc::new(Spec {
-        name: ensure_string(&args[0])?,
-        artifacts: args
-            .into_iter()
-            .skip(1)
-            .map(|artifact: Value| match artifact {
-                Value::Foreign(any) => match any.downcast::<Artifact>() {
-                    Ok(art) => Ok(art.as_ref().clone()),
+    let spec = Spec {
+        name: ensure_string(&args[0])?.as_str().try_into().map_err(|_| RuntimeError {
+            msg: "Name must be shorter than 64 bytes".to_string(),
+        })?,
+        artifacts: <Vec<Artifact> as AsRef<[Artifact]>>::as_ref(
+            &args
+                .into_iter()
+                .skip(1)
+                .map(|artifact: Value| match artifact {
+                    Value::Foreign(any) => match any.downcast::<Artifact>() {
+                        Ok(art) => Ok(art.as_ref().clone()),
+                        _ => err("arguments 1..inf must be artifacts"),
+                    },
                     _ => err("arguments 1..inf must be artifacts"),
-                },
-                _ => err("arguments 1..inf must be artifacts"),
-            })
-            .collect::<Result<_, _>>()?,
-    });
-    println!("{spec:#?}");
-    let c = spec.clone();
-    Ok(Value::NativeClosure(Rc::new(RefCell::new(|env, args| {
-        println!("{args:#?}");
-        return Ok(Value::Foreign(Rc::new(c.clone().as_ref().clone())));
+                })
+                .collect::<Result<Vec<Artifact>, RuntimeError>>()?,
+        )
+        .try_into()
+        .map_err(|_| RuntimeError {
+            msg: "You can have at most 16 artifacts in one build.".to_string(),
+        })?,
+    };
+    Ok(Value::NativeClosure(Rc::new(RefCell::new(move |env, args| {
+        let mut recipes = vec![];
+        for arg in args {
+            match arg {
+                Value::Foreign(any) if any.is::<Recipe>() => {
+                    let recipe = any.downcast::<Recipe>().unwrap().as_ref().clone();
+                    recipes.push(recipe);
+                }
+                _ => Err(rte("Argument must be a recipe."))?,
+            }
+        }
+        return Ok(Value::Foreign(Rc::new((spec, recipes))));
     }))))
+}
+
+pub(crate) fn recipe<E>(_: E, args: Vec<Value>) -> Result<Value, RuntimeError> {
+    check!(args.len() == 2, "expected exactly 2 arguments: name (string), recipe (function)");
+    let name: StaticString<64> = ensure_string(&args[0])?
+        .as_str()
+        .try_into()
+        .map_err(|_| rte("name must be shorter than 64 bytes"))?;
+    let Value::Lambda(function) = args[1].clone() else {
+        return Err(rte("second argument must be a lambda function"));
+    };
+    Ok(Value::Foreign(Rc::new(Recipe { name, function })))
 }
 
 fn ensure_string(v: &Value) -> Result<String, RuntimeError> {
     match v {
         Value::String(s) => Ok(s.clone()),
-        v => Err(RuntimeError {
-            msg: format!("Expected value to be string, not {}", v.type_name()),
-        }),
+        v => Err(rte(format!("Expected value to be string, not {}", v.type_name()))),
     }
 }
 
 pub(crate) fn artifact<E>(_: E, args: Vec<Value>) -> Result<Value, RuntimeError> {
     let art = match &args[..] {
         [v] => Artifact {
-            name: ensure_string(v)?,
+            name: ensure_string(v)?.as_str().try_into().map_err(|_| RuntimeError {
+                msg: "Name must be shorter than 64 bytes".to_string(),
+            })?,
             r#type: ArtifactType::Executable,
         },
         [name, ty] => {
-            let name = ensure_string(name)?;
+            let name = ensure_string(name)?.as_str().try_into().map_err(|_| RuntimeError {
+                msg: "Name must be shorter than 64 bytes".to_string(),
+            })?;
             let ty = ensure_string(ty)?;
             let r#type = match ty.as_str() {
                 "executable" => ArtifactType::Executable,
                 "library" => ArtifactType::Library,
                 "resource" => ArtifactType::Resource,
-                _ => err(format!("unknown artifact type {}", ty))?
+                _ => err(format!("unknown artifact type {}", ty))?,
             };
 
             Artifact { name, r#type }
@@ -110,12 +137,10 @@ pub(crate) fn emit_artifact(env: Rc<RefCell<Env>>, args: Vec<Value>) -> Result<V
         _ => err("second argument must be ArtifactPath")?,
     };
 
-
-
     Ok(Value::NIL)
 }
 
-
+use crate::utils::rte;
 use std::fs;
 use std::sync::Arc;
 
@@ -147,7 +172,7 @@ fn deploy_executable(file_path: &str, name: &str) -> Result<(), Box<dyn std::err
     if symlink_path.exists() {
         fs::remove_file(&symlink_path)?;
     }
-    std::os::unix::fs::symlink(&executable_path, &symlink_path)?;  // Explicitly use unix symlink
+    std::os::unix::fs::symlink(&executable_path, &symlink_path)?; // Explicitly use unix symlink
 
     Ok(())
 }

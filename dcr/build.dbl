@@ -1,6 +1,6 @@
 ((spec "dcr"
-    (artifact "dcr" "executable")))
- (recipe
+    (artifact "dcr" "executable"))
+ (recipe "default"
      (lambda ()
          (cargo-build "cli")
          (emit-artifact "dcr"

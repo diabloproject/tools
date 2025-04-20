@@ -1,14 +1,11 @@
 mod lisp_fns;
 mod types;
+mod utils;
 
-use rust_lisp::default_env;
-use rust_lisp::interpreter::eval;
-use rust_lisp::model::{Env, Symbol, Value};
-use rust_lisp::parser::parse;
+use crate::types::{Recipe, Spec};
 use std::cell::RefCell;
 use std::path::Path;
 use std::rc::Rc;
-use thiserror::Error;
 
 #[derive(Error, Debug)]
 pub enum BuildError {
@@ -16,8 +13,10 @@ pub enum BuildError {
     NoBuildFileError { build_dir: String },
     #[error(transparent)]
     IOError(#[from] std::io::Error),
-    #[error("Parse error occured: ")]
+    #[error("Parse error occurred: ")]
     ParseError(rust_lisp::parser::ParseError),
+    #[error("Invalid script file: ")]
+    InvalidScriptError,
 }
 
 pub fn build(path: &Path) -> Result<(), BuildError> {
@@ -39,8 +38,20 @@ pub fn build(path: &Path) -> Result<(), BuildError> {
             Ok(expr) => expr,
             Err(e) => return Err(BuildError::ParseError(e)),
         };
-        let res = eval(env.clone(), &expr);
-        println!("{:?}", res)
+        let res = eval(env.clone(), &expr).map_err(|_| BuildError::InvalidScriptError)?;
+        let (spec, recipes) = match res {
+            Value::Foreign(any) if any.is::<(Spec, Vec<Recipe>)>() => any
+                .downcast::<(Spec, Vec<Recipe>)>()
+                .map_err(|_| BuildError::InvalidScriptError)
+                .expect("unreachable")
+                .as_ref()
+                .clone(),
+            _ => return Err(BuildError::InvalidScriptError),
+        };
+        let default_recipe = recipes.iter().filter(|x| x.name == "default".try_into().unwrap()).next().unwrap();
+        let build_result = eval(env.clone(), &Value::Lambda(default_recipe.function.clone())).expect("TODO: panic message");
+        println!("{}", );
+        println!("{:#?}: {:#?}", spec, recipes);
     }
     Ok(())
 }
@@ -54,9 +65,6 @@ fn setup_lisp_env(path: &Path) -> Rc<RefCell<Env>> {
         .define(Symbol::from("emit-artifact"), Value::NativeFunc(lisp_fns::emit_artifact));
     env.borrow_mut()
         .define(Symbol::from("buildroot"), Value::String(path.to_string_lossy().into()));
-    env.borrow_mut()
-        .define(Symbol::from("recipe"), Value::NativeFunc(|_, args| {
-            Ok(Value::NIL)
-        }));
+    env.borrow_mut().define(Symbol::from("recipe"), Value::NativeFunc(lisp_fns::recipe));
     env
 }

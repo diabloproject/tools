@@ -3,13 +3,13 @@
 version = 4
 
 [[package]]
+name = "cgroup-devices"
+version = "0.1.0"
+
+[[package]]
 name = "cli"
 version = "0.1.0"
 
 [[package]]
-name = "cli2"
-version = "0.1.0"
-
-[[package]]
-name = "containerd-client"
+name = "libcontainers"
 version = "0.1.0"

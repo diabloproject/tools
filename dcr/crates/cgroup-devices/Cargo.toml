@@ -1,7 +1,6 @@
 [package]
-name = "builder"
+name = "cgroup-devices"
 version = "0.1.0"
 edition = "2024"
 
 [dependencies]
-lisp = { workspace = true }
