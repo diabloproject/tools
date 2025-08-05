@@ -1,0 +1,15 @@
+digraph tailshell {
+    rankdir=LR;
+    node [shape=box, style=rounded];
+
+    n4 [label="ffmpeg -i @input -i tmp.aac -c copy @output", shape=box, style=rounded, color=blue];
+    n2 [label="ffmpeg -i @input -c copy tmp.aac", shape=box, style=rounded, color=blue];
+    n0 [label="output\next:mov", shape=cylinder, style=filled, fillcolor=red];
+    n1 [label="input\next:mov", shape=cylinder, style=filled, fillcolor=green];
+    n3 [label="ls 1", shape=box, style=rounded, fillcolor=lightgray, color=orange];
+    n1 -> n2 [color=darkgreen, label="input", style=dashed];
+    n2 -> n3 [color=black];
+    n3 -> n4 [color=black];
+    n1 -> n4 [color=darkgreen, label="input", style=dashed];
+    n4 -> n0 [color=darkgreen, label="output", style=dashed];
+}

@@ -1,0 +1,13 @@
+[package]
+name = "tb"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+libdfs.workspace = true
+libconf.workspace = true
+log4rs.workspace = true
+log.workspace = true
+control.workspace = true
+tokio.workspace = true
+network.workspace = true

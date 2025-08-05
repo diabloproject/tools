@@ -1,0 +1,12 @@
+[package]
+name = "libconf"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+toml.workspace = true
+serde.workspace = true
+directories.workspace = true
+thiserror.workspace = true
+log4rs.workspace = true
+log.workspace = true

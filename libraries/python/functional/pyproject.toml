@@ -1,0 +1,17 @@
+[project]
+name = "diabloproject-functional"
+version = "0.1.0"
+description = "A functional programming library"
+readme = "README.md"
+authors = [
+    { name = "Diabl", email = "diablo.project@outlook.com" }
+]
+requires-python = ">=3.13"
+dependencies = []
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[dependency-groups]
+dev = []
