@@ -85,10 +85,11 @@ echo "operating_system=$(uname -o 2>/dev/null || echo 'unknown')"
 # Distribution Detection
 if [[ -f /etc/os-release ]]; then
     # Source the file safely
+    source /etc/os-release
     eval "$(grep -E '^(ID|NAME|VERSION|VERSION_CODENAME|UBUNTU_CODENAME|PRETTY_NAME)=' /etc/os-release 2>/dev/null || true)"
-    echo "distro_id=${ID:-unknown}"
-    echo "distro_name=${NAME:-unknown}"
-    echo "distro_version=${VERSION:-unknown}"
+    echo "distro_id=${ID}"
+    echo "distro_name=${NAME}"
+    echo "distro_version=${VERSION}"
     echo "distro_codename=${VERSION_CODENAME:-${UBUNTU_CODENAME:-unknown}}"
     echo "distro_pretty=${PRETTY_NAME:-unknown}"
 elif [[ -f /etc/redhat-release ]]; then
@@ -223,6 +224,78 @@ echo "container=$(safe_cmd 'systemd-detect-virt --container 2>/dev/null')"
 # Network Information
 echo "interfaces=$(safe_cmd 'ip -o link show 2>/dev/null | awk -F: "{print \$2}" | tr "\n" "," | sed "s/,$//" | sed "s/^[[:space:]]*//"')"
 echo "default_route=$(safe_cmd 'ip route show default 2>/dev/null | head -1')"
+
+# Get raw versions first
+docker_raw_version=$(safe_cmd "docker --version 2>/dev/null")
+podman_raw_version=$(safe_cmd "podman --version 2>/dev/null")
+kubernetes_raw_version=$(safe_cmd "kubectl version 2>/dev/null")
+
+# Extract Docker version - handle docker-shim/podman-docker scenarios
+docker_version="unknown"
+if [[ "$docker_raw_version" != "unknown" ]]; then
+    # Check if this is actually podman masquerading as docker
+    if echo "$docker_raw_version" | grep -qi "podman"; then
+        # This is podman-docker shim, try to get real Docker version
+        # Try docker info to see if real Docker daemon is running
+        docker_info_version=$(safe_cmd "docker info --format '{{.ServerVersion}}' 2>/dev/null")
+        if [[ "$docker_info_version" != "unknown" && "$docker_info_version" != "" ]]; then
+            # Check if the server version looks like Docker (not podman)
+            if ! echo "$docker_info_version" | grep -qi "podman"; then
+                docker_version="$docker_info_version"
+            fi
+        fi
+        # If still unknown, try docker version command for server version
+        if [[ "$docker_version" == "unknown" ]]; then
+            docker_server_version=$(safe_cmd "docker version --format '{{.Server.Version}}' 2>/dev/null")
+            if [[ "$docker_server_version" != "unknown" && "$docker_server_version" != "" ]]; then
+                if ! echo "$docker_server_version" | grep -qi "podman"; then
+                    docker_version="$docker_server_version"
+                fi
+            fi
+        fi
+    else
+        # This appears to be real Docker, extract version normally
+        docker_version=$(echo "$docker_raw_version" | grep -o "version [0-9]\+\.[0-9]\+\.[0-9]\+" | cut -d' ' -f2)
+
+        # Double-check by trying to get server version to confirm it's real Docker
+        docker_server_check=$(safe_cmd "docker info --format '{{.ServerVersion}}' 2>/dev/null")
+        if [[ "$docker_server_check" != "unknown" && "$docker_server_check" != "" ]]; then
+            if ! echo "$docker_server_check" | grep -qi "podman"; then
+                # Server confirms it's Docker, use server version if available
+                docker_version="$docker_server_check"
+            fi
+        fi
+    fi
+fi
+
+echo "crt_docker_version=$docker_version"
+
+# Extract Podman version
+if [[ "$podman_raw_version" != "unknown" ]]; then
+    podman_version=$(echo "$podman_raw_version" | grep -o "version [0-9]\+\.[0-9]\+\.[0-9]\+" | cut -d' ' -f2)
+    echo "crt_podman_version=$podman_version"
+else
+    echo "crt_podman_version=unknown"
+fi
+
+# Extract Kubernetes versions
+if [[ "$kubernetes_raw_version" != "unknown" ]]; then
+    # Extract client version
+    k8s_client_version=$(echo "$kubernetes_raw_version" | grep -o "Client Version: v[0-9]\+\.[0-9]\+\.[0-9]\+" | cut -d' ' -f3)
+    echo "crt_kubernetes_client_version=${k8s_client_version:-unknown}"
+
+    # Extract kustomize version
+    k8s_kustomize_version=$(echo "$kubernetes_raw_version" | grep -o "Kustomize Version: v[0-9]\+\.[0-9]\+\.[0-9]\+" | cut -d' ' -f3)
+    echo "crt_kubernetes_kustomize_version=${k8s_kustomize_version:-unknown}"
+
+    # Extract server version
+    k8s_server_version=$(echo "$kubernetes_raw_version" | grep -o "Server Version: v[0-9]\+\.[0-9]\+\.[0-9]\+" | cut -d' ' -f3)
+    echo "crt_kubernetes_server_version=${k8s_server_version:-unknown}"
+else
+    echo "crt_kubernetes_client_version=unknown"
+    echo "crt_kubernetes_kustomize_version=unknown"
+    echo "crt_kubernetes_server_version=unknown"
+fi
 
 # Package Managers
 echo "dpkg=$(safe_cmd 'dpkg --version 2>/dev/null | head -1' 'not_found')"
