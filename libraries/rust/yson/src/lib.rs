@@ -1,5 +1,7 @@
+mod protoshim;
 use std::fmt::Display;
 
+use protoshim::ProtoshimError;
 use thiserror::Error;
 
 pub type YsonString = Vec<u8>;
@@ -71,14 +73,14 @@ pub struct YsonNode {
 }
 
 #[non_exhaustive]
-#[derive(Error, Debug, Copy, Clone, PartialEq, Eq)]
+#[derive(Error, Debug, Clone, PartialEq, Eq)]
 pub enum YsonParseErrorVariant {
     #[error("Reached EOF before value was completed")]
     IncompleteValue,
     #[error("Parser was not implemented")]
     NotImplementedError,
-    #[error("Binary representation overflow")]
-    BinaryOverflow,
+    #[error("{0}")]
+    ProtoshimError(ProtoshimError),
 }
 
 #[derive(Error, Debug)]
@@ -86,6 +88,16 @@ pub struct YsonParseError {
     pub variant: YsonParseErrorVariant,
     /// how many bytes since the start of the input
     pub at: usize,
+}
+
+impl From<ProtoshimError> for YsonParseError {
+    fn from(value: ProtoshimError) -> Self {
+        let at = value.at();
+        Self {
+            variant: YsonParseErrorVariant::ProtoshimError(value),
+            at,
+        }
+    }
 }
 
 impl Display for YsonParseError {
@@ -130,49 +142,48 @@ macro_rules! item {
 
 type YsonParseResult<T> = Result<YsonParseItem<T>, YsonParseError>;
 
-pub fn parse_once(value: &[u8]) -> YsonParseResult<YsonValue> {
-    if value.len() == 0 {
+pub fn parse_once(bytes: &[u8]) -> YsonParseResult<YsonValue> {
+    if bytes.len() == 0 {
         return Err(YsonParseError::incomplete(0));
     }
     // check if first byte means something special:
-    match value[0] {
+    match bytes[0] {
         // Binary string
         0x01 => return Err(YsonParseError::todo(1)),
         // sint64
         0x02 => {
-            let mut result = 0u64;
-            let mut shift = 0;
-            let mut bytes_read = 0;
-
-            // Varint decode
-            for &byte in &value[1..] {
-                bytes_read += 1;
-
-                if bytes_read > 10 || shift >= 64 {
-                    return Err(YsonParseError {
-                        variant: YsonParseErrorVariant::BinaryOverflow,
-                        at: 1 + bytes_read,
-                    });
+            return Ok({
+                let res = protoshim::decode_sint64(&bytes[1..])?;
+                YsonParseItem {
+                    at: res.1,
+                    value: res.0.into(),
                 }
-
-                result |= ((byte & 0x7F) as u64) << shift;
-
-                if (byte & 0x80) == 0 {
-                    // ZigZag decode: (n >> 1) ^ -(n & 1)
-                    let decoded = ((result >> 1) as i64) ^ (-((result & 1) as i64));
-                    return Ok(item!(decoded.into(), bytes_read + 1));
-                }
-
-                shift += 7;
-            }
-            return Err(YsonParseError::incomplete(bytes_read + 1));
+            })
         }
-        // uint64
-        0x03 => return Err(YsonParseError::todo(1)),
+        // double
+        0x03 => {
+            return Ok({
+                let res = protoshim::decode_double(&bytes[1..])?;
+                YsonParseItem {
+                    at: res.1,
+                    value: res.0.into(),
+                }
+            })
+        }
         // true
         0x04 => return Ok(item!(true.into(), 1)),
         // false
         0x05 => return Ok(item!(false.into(), 1)),
+        // uint64
+        0x06 => {
+            return Ok({
+                let res = protoshim::decode_uint64(&bytes[1..])?;
+                YsonParseItem {
+                    at: res.1,
+                    value: res.0.into(),
+                }
+            })
+        }
         _ => return Err(YsonParseError::todo(0)),
     }
 }
@@ -238,5 +249,59 @@ mod tests {
     }
 
     #[test]
-    fn test_parse_double() {todo!()}
+    fn test_parse_uint64_binary() {
+        assert!(
+            parse_complete_value(&vec![0x06, 0x00]).unwrap()
+                == YsonNode {
+                    attributes: None,
+                    value: YsonValue::Uint64(0)
+                }
+        );
+        assert!(
+            parse_complete_value(&vec![0x06, 0x01]).unwrap()
+                == YsonNode {
+                    attributes: None,
+                    value: YsonValue::Uint64(1)
+                }
+        );
+        assert!(
+            parse_complete_value(&vec![0x06, 0x02]).unwrap()
+                == YsonNode {
+                    attributes: None,
+                    value: YsonValue::Uint64(2)
+                }
+        );
+    }
+
+    #[test]
+    fn test_parse_double_binary() {
+        assert!(
+            parse_complete_value(&vec![0x03, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00])
+                .unwrap()
+                == YsonNode {
+                    attributes: None,
+                    value: YsonValue::Double(0.0)
+                }
+        );
+        assert!(
+            parse_complete_value(&vec![0x03, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xF0, 0x3F])
+                .unwrap()
+                == YsonNode {
+                    attributes: None,
+                    value: YsonValue::Double(1.0)
+                }
+        );
+        assert!(
+            parse_complete_value(&vec![0x03, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xF0, 0xBF])
+                .unwrap()
+                == YsonNode {
+                    attributes: None,
+                    value: YsonValue::Double(-1.0)
+                }
+        );
+    }
+    #[test]
+    fn test_parse_double() {
+        todo!()
+    }
 }
