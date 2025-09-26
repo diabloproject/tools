@@ -1,3 +1,4 @@
+#![allow(dead_code)]
 use std::fmt;
 
 /// Error types for protobuf parsing
@@ -57,7 +58,7 @@ impl fmt::Display for ProtoshimError {
                     write!(f, "0x{:02X}", byte)?;
                 }
 
-                if input.len() > 10 {
+                if input.len() > 12 {
                     write!(f, " ...")?;
                 }
 
@@ -101,58 +102,48 @@ impl fmt::Display for ProtoshimError {
 
 impl std::error::Error for ProtoshimError {}
 
-/// Encodes a signed 64-bit integer to protobuf sint64 format
 pub fn encode_sint64(value: i64) -> Vec<u8> {
     let zigzag = ((value << 1) ^ (value >> 63)) as u64;
     encode_varint_u64(zigzag)
 }
 
-/// Decodes protobuf sint64 format to a signed 64-bit integer
 pub fn decode_sint64(bytes: &[u8]) -> Result<(i64, usize), ProtoshimError> {
     let (zigzag, bytes_read) = decode_varint_u64_internal(bytes, "sint64")?;
     let decoded = ((zigzag >> 1) as i64) ^ (-((zigzag & 1) as i64));
     Ok((decoded, bytes_read))
 }
 
-/// Encodes a signed 32-bit integer to protobuf sint32 format
 pub fn encode_sint32(value: i32) -> Vec<u8> {
     let zigzag = ((value << 1) ^ (value >> 31)) as u32;
     encode_varint_u32(zigzag)
 }
 
-/// Decodes protobuf sint32 format to a signed 32-bit integer
 pub fn decode_sint32(bytes: &[u8]) -> Result<(i32, usize), ProtoshimError> {
     let (zigzag, bytes_read) = decode_varint_u32_internal(bytes, "sint32")?;
     let decoded = ((zigzag >> 1) as i32) ^ (-((zigzag & 1) as i32));
     Ok((decoded, bytes_read))
 }
 
-/// Encodes an unsigned 64-bit integer to protobuf uint64 format
 pub fn encode_uint64(value: u64) -> Vec<u8> {
     encode_varint_u64(value)
 }
 
-/// Decodes protobuf uint64 format to an unsigned 64-bit integer
 pub fn decode_uint64(bytes: &[u8]) -> Result<(u64, usize), ProtoshimError> {
     decode_varint_u64_internal(bytes, "uint64")
 }
 
-/// Encodes an unsigned 32-bit integer to protobuf uint32 format
 pub fn encode_uint32(value: u32) -> Vec<u8> {
     encode_varint_u32(value)
 }
 
-/// Decodes protobuf uint32 format to an unsigned 32-bit integer
 pub fn decode_uint32(bytes: &[u8]) -> Result<(u32, usize), ProtoshimError> {
     decode_varint_u32_internal(bytes, "uint32")
 }
 
-/// Encodes a double (f64) to protobuf double format (8 bytes, little-endian)
 pub fn encode_double(value: f64) -> Vec<u8> {
     value.to_le_bytes().to_vec()
 }
 
-/// Decodes protobuf double format to an f64
 pub fn decode_double(bytes: &[u8]) -> Result<(f64, usize), ProtoshimError> {
     if bytes.len() < 8 {
         return Err(ProtoshimError::Incomplete {
@@ -166,8 +157,6 @@ pub fn decode_double(bytes: &[u8]) -> Result<(f64, usize), ProtoshimError> {
     array.copy_from_slice(&bytes[0..8]);
     Ok((f64::from_le_bytes(array), 8))
 }
-
-// Helper functions for varint encoding/decoding
 
 fn encode_varint_u64(mut value: u64) -> Vec<u8> {
     let mut result = Vec::new();
@@ -218,7 +207,7 @@ fn decode_varint_u64_internal(
         if bytes_read >= 10 {
             return Err(ProtoshimError::ExcessiveLength {
                 input: bytes.iter().take(11).copied().collect(),
-                error_position: 9, // 10th byte (0-indexed)
+                error_position: 9,
                 data_type,
                 at: bytes_read,
             });
@@ -287,7 +276,7 @@ fn decode_varint_u32_internal(
         if bytes_read >= 5 {
             return Err(ProtoshimError::ExcessiveLength {
                 input: bytes.iter().take(6).copied().collect(),
-                error_position: 4, // 5th byte (0-indexed)
+                error_position: 4,
                 data_type,
                 at: bytes_read,
             });
@@ -454,267 +443,3 @@ mod tests {
         assert!(error_string.contains("uint64 will overflow"));
     }
 }
-
-// #[derive(Debug)]
-// struct ProtoshimItem<T: Sized> {
-//     pub at: usize,
-//     pub value: T
-// }
-
-// macro_rules! item {
-//     ($val: expr, $at: expr) => {
-//         ProtoshimItem { at: $at, value: $val }
-//     };
-// }
-
-// impl std::fmt::Display for ProtoshimError {
-//     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-//         write!(f, "Incomplete input")
-//     }
-// }
-
-// /// Encodes a signed 64-bit integer to protobuf sint64 format
-// pub fn encode_sint64(value: i64) -> Vec<u8> {
-//     let zigzag = ((value << 1) ^ (value >> 63)) as u64;
-//     encode_varint_u64(zigzag)
-// }
-
-// /// Decodes protobuf sint64 format to a signed 64-bit integer
-// pub fn decode_sint64(bytes: &[u8]) -> Result<ProtoshimItem<i64>, ProtoshimError> {
-//     let (zigzag, bytes_read) = decode_varint_u64(bytes)?;
-//     let decoded = ((zigzag >> 1) as i64) ^ (-((zigzag & 1) as i64));
-//     Ok((decoded, bytes_read))
-// }
-
-// /// Encodes a signed 32-bit integer to protobuf sint32 format
-// pub fn encode_sint32(value: i32) -> Vec<u8> {
-//     let zigzag = ((value << 1) ^ (value >> 31)) as u32;
-//     encode_varint_u32(zigzag)
-// }
-
-// /// Decodes protobuf sint32 format to a signed 32-bit integer
-// pub fn decode_sint32(bytes: &[u8]) -> Result<ProtohshimItem<i32>, ProtoshimError> {
-//     let (zigzag, bytes_read) = decode_varint_u32(bytes)?;
-//     let decoded = ((zigzag >> 1) as i32) ^ (-((zigzag & 1) as i32));
-//     Ok((decoded, bytes_read))
-// }
-
-// /// Encodes an unsigned 64-bit integer to protobuf uint64 format
-// pub fn encode_uint64(value: u64) -> Vec<u8> {
-//     encode_varint_u64(value)
-// }
-
-// /// Decodes protobuf uint64 format to an unsigned 64-bit integer
-// pub fn decode_uint64(bytes: &[u8]) -> Result<ProtoshimItem<u64>, ProtoshimError> {
-//     decode_varint_u64(bytes)
-// }
-
-// /// Encodes an unsigned 32-bit integer to protobuf uint32 format
-// pub fn encode_uint32(value: u32) -> Vec<u8> {
-//     encode_varint_u32(value)
-// }
-
-// /// Decodes protobuf uint32 format to an unsigned 32-bit integer
-// pub fn decode_uint32(bytes: &[u8]) -> Result<ProtoshimItem<u32>, ProtoshimError> {
-//     decode_varint_u32(bytes)
-// }
-
-// /// Encodes a double (f64) to protobuf double format (8 bytes, little-endian)
-// pub fn encode_double(value: f64) -> Vec<u8> {
-//     value.to_le_bytes().to_vec()
-// }
-
-// /// Decodes protobuf double format to an f64
-// pub fn decode_double(bytes: &[u8]) -> Result<ProtoshimItem<f64>, ProtoshimError> {
-//     if bytes.len() < 8 {
-//         return Err(ProtoshimError { at: bytes.len() });
-//     }
-
-//     let mut array = [0u8; 8];
-//     array.copy_from_slice(&bytes[0..8]);
-//     Ok((f64::from_le_bytes(array), 8))
-// }
-
-// // Helper functions for varint encoding/decoding
-
-// fn encode_varint_u64(mut value: u64) -> Vec<u8> {
-//     let mut result = Vec::new();
-
-//     loop {
-//         let mut byte = (value & 0x7F) as u8;
-//         value >>= 7;
-
-//         if value != 0 {
-//             byte |= 0x80;
-//         }
-
-//         result.push(byte);
-
-//         if value == 0 {
-//             break;
-//         }
-//     }
-
-//     result
-// }
-
-// fn decode_varint_u64(bytes: &[u8]) -> Result<(u64, usize), ProtoshimError> {
-//     let mut result = 0u64;
-//     let mut shift = 0;
-//     let mut bytes_read = 0;
-
-//     for &byte in bytes {
-//         bytes_read += 1;
-
-//         if bytes_read > 10 || shift >= 64 {
-//             // Why -1?
-//             // Imagine you have read 10 bytes, and the 10th did not have continuation bit set
-//             // In such case, while we detected the error at 11th byte, the error is, in fact, in the 10th byte
-//             return Err(ProtoshimError { at: bytes_read - 1 });
-//         }
-
-//         result |= ((byte & 0x7F) as u64) << shift;
-
-//         if (byte & 0x80) == 0 {
-//             return Ok((result, bytes_read));
-//         }
-
-//         shift += 7;
-//     }
-
-//     Err(ProtoshimError { at: bytes.len() })
-// }
-
-// fn encode_varint_u32(mut value: u32) -> Vec<u8> {
-//     let mut result = Vec::new();
-
-//     loop {
-//         let mut byte = (value & 0x7F) as u8;
-//         value >>= 7;
-
-//         if value != 0 {
-//             byte |= 0x80;
-//         }
-
-//         result.push(byte);
-
-//         if value == 0 {
-//             break;
-//         }
-//     }
-
-//     result
-// }
-
-// fn decode_varint_u32(bytes: &[u8]) -> Result<(u32, usize), ProtoshimError> {
-//     let mut result = 0u32;
-//     let mut shift = 0;
-//     let mut bytes_read = 0;
-
-//     for &byte in bytes {
-//         bytes_read += 1;
-
-//         if bytes_read > 5 || shift >= 32 {
-//             // Why -1?
-//             // Imagine you have read 5 bytes, and the 5th did not have continuation bit set
-//             // In such case, while we detected the error at 6th byte, the error is, in fact, in the 5th byte
-//             return Err(ProtoshimError { at: bytes_read - 1 });
-//         }
-
-//         result |= ((byte & 0x7F) as u32) << shift;
-
-//         if (byte & 0x80) == 0 {
-//             return Ok((result, bytes_read));
-//         }
-
-//         shift += 7;
-//     }
-
-//     Err(ProtoshimError { at: bytes.len() })
-// }
-
-// #[cfg(test)]
-// mod tests {
-//     use super::*;
-
-//     #[test]
-//     fn test_sint64() {
-//         assert_eq!(encode_sint64(0), vec![0x00]);
-//         assert_eq!(encode_sint64(1), vec![0x02]);
-//         assert_eq!(encode_sint64(-1), vec![0x01]);
-
-//         let (val, len) = decode_sint64(&[0x00]).unwrap();
-//         assert_eq!((val, len), (0, 1));
-
-//         let (val, len) = decode_sint64(&[0x02]).unwrap();
-//         assert_eq!((val, len), (1, 1));
-
-//         let (val, len) = decode_sint64(&[0x01]).unwrap();
-//         assert_eq!((val, len), (-1, 1));
-//     }
-
-//     #[test]
-//     fn test_sint32() {
-//         assert_eq!(encode_sint32(0), vec![0x00]);
-//         assert_eq!(encode_sint32(1), vec![0x02]);
-//         assert_eq!(encode_sint32(-1), vec![0x01]);
-
-//         let (val, len) = decode_sint32(&[0x00]).unwrap();
-//         assert_eq!((val, len), (0, 1));
-//     }
-
-//     #[test]
-//     fn test_uint64() {
-//         assert_eq!(encode_uint64(0), vec![0x00]);
-//         assert_eq!(encode_uint64(127), vec![0x7F]);
-//         assert_eq!(encode_uint64(128), vec![0x80, 0x01]);
-
-//         let (val, len) = decode_uint64(&[0x00]).unwrap();
-//         assert_eq!((val, len), (0, 1));
-
-//         let (val, len) = decode_uint64(&[0x7F]).unwrap();
-//         assert_eq!((val, len), (127, 1));
-
-//         let (val, len) = decode_uint64(&[0x80, 0x01]).unwrap();
-//         assert_eq!((val, len), (128, 2));
-//     }
-
-//     #[test]
-//     fn test_uint32() {
-//         assert_eq!(encode_uint32(0), vec![0x00]);
-//         assert_eq!(encode_uint32(127), vec![0x7F]);
-//         assert_eq!(encode_uint32(128), vec![0x80, 0x01]);
-
-//         let (val, len) = decode_uint32(&[0x00]).unwrap();
-//         assert_eq!((val, len), (0, 1));
-//     }
-
-//     #[test]
-//     fn test_double() {
-//         let pi = std::f64::consts::PI;
-//         let encoded = encode_double(pi);
-//         assert_eq!(encoded.len(), 8);
-
-//         let (decoded, len) = decode_double(&encoded).unwrap();
-//         assert_eq!((decoded, len), (pi, 8));
-
-//         // Test zero
-//         let encoded = encode_double(0.0);
-//         let (decoded, len) = decode_double(&encoded).unwrap();
-//         assert_eq!((decoded, len), (0.0, 8));
-
-//         // Test negative
-//         let encoded = encode_double(-123.456);
-//         let (decoded, len) = decode_double(&encoded).unwrap();
-//         assert_eq!((decoded, len), (-123.456, 8));
-//     }
-
-//     #[test]
-//     fn test_incomplete_errors() {
-//         assert_eq!(decode_sint64(&[]), Err("Incomplete"));
-//         assert_eq!(decode_sint32(&[]), Err("Incomplete"));
-//         assert_eq!(decode_uint64(&[]), Err("Incomplete"));
-//         assert_eq!(decode_uint32(&[]), Err("Incomplete"));
-//         assert_eq!(decode_double(&[0x00, 0x01, 0x02]), Err("Incomplete"));
-//     }
-// }

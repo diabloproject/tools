@@ -1,130 +1,9 @@
 mod protoshim;
-use std::fmt::Display;
-
-use protoshim::ProtoshimError;
-use thiserror::Error;
-
-pub type YsonString = Vec<u8>;
-
-#[derive(Debug, Clone, PartialEq)]
-pub enum YsonValue {
-    String(YsonString),
-    Int64(i64),
-    Uint64(u64),
-    Double(f64),
-    Boolean(bool),
-    Entity,
-    List(Vec<YsonNode>),
-    Map(std::collections::BTreeMap<YsonString, YsonNode>),
-}
-
-impl From<YsonString> for YsonValue {
-    fn from(v: YsonString) -> Self {
-        YsonValue::String(v)
-    }
-}
-
-impl From<&str> for YsonValue {
-    fn from(v: &str) -> Self {
-        YsonValue::String(v.bytes().collect())
-    }
-}
-
-impl From<i64> for YsonValue {
-    fn from(v: i64) -> Self {
-        YsonValue::Int64(v)
-    }
-}
-
-impl From<u64> for YsonValue {
-    fn from(v: u64) -> Self {
-        YsonValue::Uint64(v)
-    }
-}
-
-impl From<f64> for YsonValue {
-    fn from(v: f64) -> Self {
-        YsonValue::Double(v)
-    }
-}
-
-impl From<bool> for YsonValue {
-    fn from(v: bool) -> Self {
-        YsonValue::Boolean(v)
-    }
-}
-
-impl From<Vec<YsonNode>> for YsonValue {
-    fn from(v: Vec<YsonNode>) -> Self {
-        YsonValue::List(v)
-    }
-}
-
-impl From<std::collections::BTreeMap<YsonString, YsonNode>> for YsonValue {
-    fn from(v: std::collections::BTreeMap<YsonString, YsonNode>) -> Self {
-        YsonValue::Map(v)
-    }
-}
-
-#[derive(Debug, Clone, PartialEq)]
-pub struct YsonNode {
-    pub attributes: Option<std::collections::BTreeMap<String, YsonNode>>,
-    pub value: YsonValue,
-}
-
-#[non_exhaustive]
-#[derive(Error, Debug, Clone, PartialEq, Eq)]
-pub enum YsonParseErrorVariant {
-    #[error("Reached EOF before value was completed")]
-    IncompleteValue,
-    #[error("Parser was not implemented")]
-    NotImplementedError,
-    #[error("{0}")]
-    ProtoshimError(ProtoshimError),
-}
-
-#[derive(Error, Debug)]
-pub struct YsonParseError {
-    pub variant: YsonParseErrorVariant,
-    /// how many bytes since the start of the input
-    pub at: usize,
-}
-
-impl From<ProtoshimError> for YsonParseError {
-    fn from(value: ProtoshimError) -> Self {
-        let at = value.at();
-        Self {
-            variant: YsonParseErrorVariant::ProtoshimError(value),
-            at,
-        }
-    }
-}
-
-impl Display for YsonParseError {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(
-            f,
-            "Reached error \"{}\" {} bytes into the sequence",
-            self.variant, self.at
-        )
-    }
-}
-
-impl YsonParseError {
-    pub fn incomplete(at: usize) -> Self {
-        return Self {
-            variant: YsonParseErrorVariant::IncompleteValue,
-            at,
-        };
-    }
-
-    pub fn todo(at: usize) -> Self {
-        return Self {
-            variant: YsonParseErrorVariant::NotImplementedError,
-            at,
-        };
-    }
-}
+mod string;
+mod value;
+mod error;
+use crate::value::{ YsonValue, YsonNode };
+use crate::error::YsonParseError;
 
 pub struct YsonParseItem<T: Sized> {
     pub at: usize,
@@ -149,7 +28,18 @@ pub fn parse_once(bytes: &[u8]) -> YsonParseResult<YsonValue> {
     // check if first byte means something special:
     match bytes[0] {
         // Binary string
-        0x01 => return Err(YsonParseError::todo(1)),
+        0x01 => {
+            let (buffer_length, bytes_read) = protoshim::decode_sint64(&bytes[1..])?;
+            let buffer_length = buffer_length as usize;
+            let contents = &bytes[bytes_read + 1..bytes_read + 1 + buffer_length];
+            if contents.len() != buffer_length {
+                return Err(YsonParseError::incomplete(1 + buffer_length + bytes_read));
+            }
+            return Ok(YsonParseItem {
+                at: buffer_length + bytes_read + 1,
+                value: contents.to_vec().into(),
+            });
+        }
         // sint64
         0x02 => {
             return Ok({
@@ -184,8 +74,36 @@ pub fn parse_once(bytes: &[u8]) -> YsonParseResult<YsonValue> {
                 }
             })
         }
-        _ => return Err(YsonParseError::todo(0)),
+        _ => {}
     }
+
+    // None of byte patterns matched, so we conclude that this is text representation
+
+    fn match_digits<'a>(bytes: &'a [u8]) -> (&'a str, usize) {
+        let mut cur = 0;
+        while bytes[cur].is_ascii_digit() {
+            cur += 1;
+        }
+        return (unsafe { str::from_utf8_unchecked(&bytes[0..cur]) }, cur);
+    }
+
+    if match_digits(bytes).1 != 0 || bytes[0] == b'+' || bytes[0] == b'-' {
+        // Numbers
+    } else if bytes[0] == b'"' || bytes[0].is_ascii_alphabetic() || bytes[0] == b'_' {
+        // String literals
+    } else if bytes[0] == b'%' {
+        // Booleans
+    } else if bytes[0] == b'#' {
+        // Entity
+        return Ok(YsonParseItem {
+            at: 1,
+            value: YsonValue::Entity,
+        });
+    } else {
+        // Erorr
+    }
+
+    return Err(YsonParseError::todo(0));
 }
 
 pub fn parse_complete_value(value: &[u8]) -> Result<YsonNode, YsonParseError> {
@@ -299,9 +217,5 @@ mod tests {
                     value: YsonValue::Double(-1.0)
                 }
         );
-    }
-    #[test]
-    fn test_parse_double() {
-        todo!()
     }
 }
