@@ -1,2 +1,3 @@
-mod protoshim;
-mod lexer;
+pub mod protoshim;
+pub mod lexer;
+pub mod parser;

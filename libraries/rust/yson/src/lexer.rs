@@ -21,7 +21,7 @@ pub enum YsonToken {
     // Literals
     SignedInteger(i64),
     UnsignedInteger(u64),
-    Float(f64),
+    Double(f64),
     String(Vec<u8>),
     Entity,
     Boolean(bool),
@@ -112,7 +112,7 @@ impl<E: Error, R: Iterator<Item = Result<u8, E>>> YsonLexer<E, R> {
             }
             0x03 => {
                 let value = protoshim::decode_double(&mut self.reader)?;
-                Ok(Some(YsonToken::Float(value)))
+                Ok(Some(YsonToken::Double(value)))
             }
             0x04 => Ok(Some(YsonToken::Boolean(true))),
             0x05 => Ok(Some(YsonToken::Boolean(false))),
@@ -172,7 +172,7 @@ impl<E: Error, R: Iterator<Item = Result<u8, E>>> YsonLexer<E, R> {
                         buffer.push(*byte);
                         self.reader.next();
                     }
-                    return Ok(Some(YsonToken::Float(parse(&buffer)?)));
+                    return Ok(Some(YsonToken::Double(parse(&buffer)?)));
                 }
 
                 if let Some(Ok(b'u')) = self.reader.peek() {
@@ -348,9 +348,9 @@ mod tests {
         assert_eq!(
             tokens,
             vec![
-                YsonToken::Float(123.45),
-                YsonToken::Float(0.0),
-                YsonToken::Float(999.999),
+                YsonToken::Double(123.45),
+                YsonToken::Double(0.0),
+                YsonToken::Double(999.999),
             ]
         );
     }
@@ -367,7 +367,7 @@ mod tests {
 
     #[test]
     fn test_mixed_tokens() {
-        let input = b"{hello = 123; world = %true}";
+        let input = b"{hello = 123; world = <explicit=%false>%true}";
         let tokens = lex_bytes(input).unwrap();
         assert_eq!(
             tokens,
@@ -379,6 +379,11 @@ mod tests {
                 YsonToken::Semicolon,
                 YsonToken::String(b"world".to_vec()),
                 YsonToken::EqualSign,
+                YsonToken::LeftAngle,
+                YsonToken::String(b"explicit".to_vec()),
+                YsonToken::EqualSign,
+                YsonToken::Boolean(false),
+                YsonToken::RightAngle,
                 YsonToken::Boolean(true),
                 YsonToken::RightBrace,
             ]
