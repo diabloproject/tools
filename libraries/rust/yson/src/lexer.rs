@@ -34,6 +34,7 @@ pub enum YsonLexError<E: Error> {
     UnexpectedEof,
     IteratorError(E),
     ProtoshimError(ProtoshimError<E>),
+    ParseError,
 }
 
 impl<E: Error> Display for YsonLexError<E> {
@@ -46,6 +47,7 @@ impl<E: Error> Display for YsonLexError<E> {
             YsonLexError::ProtoshimError(protoshim_error) => {
                 write!(f, "Protoshim error: {}", protoshim_error)
             }
+            YsonLexError::ParseError => write!(f, "Unable to parse value"),
         }
     }
 }
@@ -82,7 +84,7 @@ impl<E: Error, R: Iterator<Item = Result<u8, E>>> YsonLexer<E, R> {
     fn next_token(&mut self) -> Result<Option<YsonToken>, YsonLexError<E>> {
         while let Some(res) = self.reader.peek() {
             if let Ok(byte) = res {
-                if byte.is_ascii_whitespace() {
+                if byte.is_ascii_whitespace() || *byte == b',' {
                     self.reader.next();
                 } else {
                     break;
@@ -92,9 +94,12 @@ impl<E: Error, R: Iterator<Item = Result<u8, E>>> YsonLexer<E, R> {
                 return Err(YsonLexError::IteratorError(res.unwrap_err()));
             }
         }
-        match self.reader.next().ok_or(YsonLexError::UnexpectedEof)?? {
+        let Some(res) = self.reader.next() else {
+            return Ok(None);
+        };
+        match res? {
             0x01 => {
-                let buffer_length = protoshim::decode_sint64(&mut self.reader)? as usize;
+                let buffer_length = protoshim::decode_uint64(&mut self.reader)? as usize;
                 let mut buffer = Vec::with_capacity(buffer_length);
                 for _ in 0..buffer_length {
                     buffer.push(self.reader.next().ok_or(YsonLexError::UnexpectedEof)??);
@@ -116,40 +121,29 @@ impl<E: Error, R: Iterator<Item = Result<u8, E>>> YsonLexer<E, R> {
                 Ok(Some(YsonToken::UnsignedInteger(value)))
             }
             b'"' => {
-                let mut in_escape = false;
                 let mut buffer = Vec::new();
                 loop {
-                    match self
-                        .reader
-                        .next()
-                        .ok_or_else(|| YsonLexError::UnexpectedEof)??
-                    {
-                        b'"' if !in_escape => break,
-                        b'\\' => in_escape = !in_escape,
-                        byte => {
-                            if in_escape {
-                                assert!(
-                                    byte == b'"',
-                                    "Only \" is allowed in escape sequences for now"
-                                );
-                            }
-                            in_escape = false;
-                            buffer.push(byte);
+                    let byte = self.reader.next().ok_or(YsonLexError::UnexpectedEof)??;
+                    match byte {
+                        b'"' => break,
+                        b'\\' => {
+                            let next_byte = self.reader.next().ok_or(YsonLexError::UnexpectedEof)??;
+                            buffer.push(next_byte);
                         }
+                        _ => buffer.push(byte),
                     }
                 }
-                Ok(Some(YsonToken::String(Vec::new())))
+                Ok(Some(YsonToken::String(buffer)))
             }
             byte if byte.is_ascii_alphabetic() || byte == b'_' => {
                 let mut buffer = Vec::new();
                 buffer.push(byte);
-                loop {
-                    let byte = self
-                        .reader
-                        .next()
-                        .ok_or_else(|| YsonLexError::UnexpectedEof)??;
+                while let Some(Ok(byte)) = self.reader.peek() {
                     match byte {
-                        b'_' | b'a'..=b'z' | b'A'..=b'Z' | b'0'..=b'9' => buffer.push(byte),
+                        b'_' | b'a'..=b'z' | b'A'..=b'Z' | b'0'..=b'9' => {
+                            buffer.push(*byte);
+                            self.reader.next();
+                        }
                         _ => break,
                     }
                 }
@@ -159,50 +153,33 @@ impl<E: Error, R: Iterator<Item = Result<u8, E>>> YsonLexer<E, R> {
                 fn parse<T: FromStr, E: Error>(val: &[u8]) -> Result<T, YsonLexError<E>> {
                     unsafe { std::str::from_utf8_unchecked(val) }
                         .parse()
-                        .map_err(|_| todo!("proper error"))
+                        .map_err(|_| YsonLexError::ParseError)
                 }
 
                 let mut buffer = Vec::new();
                 buffer.push(byte);
-                loop {
-                    let res = self.reader.peek();
-                    if res.is_none() {
-                        if buffer.contains(&b'.') {
-                            return Ok(Some(YsonToken::Float(parse(&buffer)?)));
-                        } else {
-                            return Ok(Some(YsonToken::SignedInteger(parse(&buffer)?)));
-                        }
-                    }
-                    let byte = match res.unwrap() {
-                        Ok(byte) => *byte,
-                        Err(_) => {
-                            return Err(YsonLexError::IteratorError(
-                                self.reader.next().unwrap().err().unwrap(),
-                            ));
-                        }
-                    };
-                    match byte {
-                        b'0'..=b'9' => {
-                            buffer.push(byte);
-                            self.reader.next();
-                        }
-                        b'.' if !buffer.contains(&b'.') => {
-                            buffer.push(byte);
-                            self.reader.next();
-                        }
-                        _ => break,
-                    }
+
+                while let Some(Ok(byte @ b'0'..=b'9')) = self.reader.peek() {
+                    buffer.push(*byte);
+                    self.reader.next();
                 }
 
-                if buffer.contains(&b'.') {
-                    Ok(Some(YsonToken::Float(parse(&buffer)?)))
-                } else if buffer.ends_with(b"u") {
-                    Ok(Some(YsonToken::UnsignedInteger(parse(
-                        &buffer[..buffer.len() - 1],
-                    )?)))
-                } else {
-                    Ok(Some(YsonToken::SignedInteger(parse(&buffer)?)))
+                if let Some(Ok(b'.')) = self.reader.peek() {
+                    self.reader.next();
+                    buffer.push(b'.');
+                    while let Some(Ok(byte @ b'0'..=b'9')) = self.reader.peek() {
+                        buffer.push(*byte);
+                        self.reader.next();
+                    }
+                    return Ok(Some(YsonToken::Float(parse(&buffer)?)));
                 }
+
+                if let Some(Ok(b'u')) = self.reader.peek() {
+                    self.reader.next();
+                    return Ok(Some(YsonToken::UnsignedInteger(parse(&buffer)?)));
+                }
+
+                Ok(Some(YsonToken::SignedInteger(parse(&buffer)?)))
             }
             b'%' => match self.reader.next().ok_or(YsonLexError::UnexpectedEof)?? {
                 b't' => {
@@ -235,7 +212,7 @@ impl<E: Error, R: Iterator<Item = Result<u8, E>>> YsonLexer<E, R> {
             b'=' => Ok(Some(YsonToken::EqualSign)),
             b';' => Ok(Some(YsonToken::Semicolon)),
             b' ' | b'\t' | b'\n' | b'\r' => self.next_token(),
-            _ => todo!("Proper error"),
+            byte => Err(YsonLexError::UnexpectedByte(byte)),
         }
     }
 }
@@ -267,7 +244,7 @@ mod tests {
 
     #[test]
     fn test_syntax_tokens() {
-        let input = b"[]{}<>();=";
+        let input = b"[]{}<>;=";
         let tokens = lex_bytes(input).unwrap();
         assert_eq!(
             tokens,
@@ -307,7 +284,10 @@ mod tests {
         let tokens = lex_bytes(input).unwrap();
         assert_eq!(
             tokens,
-            vec![YsonToken::String(Vec::new()), YsonToken::String(Vec::new()),]
+            vec![
+                YsonToken::String(b"hello".to_vec()),
+                YsonToken::String(b"world".to_vec()),
+            ]
         );
     }
 
@@ -315,7 +295,10 @@ mod tests {
     fn test_quoted_string_with_escape() {
         let input = b"\"hello \\\"world\\\"\"";
         let tokens = lex_bytes(input).unwrap();
-        assert_eq!(tokens, vec![YsonToken::String(Vec::new())]);
+        assert_eq!(
+            tokens,
+            vec![YsonToken::String(b"hello \"world\"".to_vec())]
+        );
     }
 
     #[test]
@@ -386,20 +369,20 @@ mod tests {
 
     #[test]
     fn test_mixed_tokens() {
-        let input = b"[hello = 123, world = %true]";
+        let input = b"{hello = 123; world = %true}";
         let tokens = lex_bytes(input).unwrap();
         assert_eq!(
             tokens,
             vec![
-                YsonToken::LeftBracket,
+                YsonToken::LeftBrace,
                 YsonToken::String(b"hello".to_vec()),
                 YsonToken::EqualSign,
                 YsonToken::SignedInteger(123),
-                YsonToken::String(b",".to_vec()),
+                YsonToken::Semicolon,
                 YsonToken::String(b"world".to_vec()),
                 YsonToken::EqualSign,
                 YsonToken::Boolean(true),
-                YsonToken::RightBracket,
+                YsonToken::RightBrace,
             ]
         );
     }
