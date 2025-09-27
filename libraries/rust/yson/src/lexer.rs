@@ -127,7 +127,8 @@ impl<E: Error, R: Iterator<Item = Result<u8, E>>> YsonLexer<E, R> {
                     match byte {
                         b'"' => break,
                         b'\\' => {
-                            let next_byte = self.reader.next().ok_or(YsonLexError::UnexpectedEof)??;
+                            let next_byte =
+                                self.reader.next().ok_or(YsonLexError::UnexpectedEof)??;
                             buffer.push(next_byte);
                         }
                         _ => buffer.push(byte),
@@ -295,10 +296,7 @@ mod tests {
     fn test_quoted_string_with_escape() {
         let input = b"\"hello \\\"world\\\"\"";
         let tokens = lex_bytes(input).unwrap();
-        assert_eq!(
-            tokens,
-            vec![YsonToken::String(b"hello \"world\"".to_vec())]
-        );
+        assert_eq!(tokens, vec![YsonToken::String(b"hello \"world\"".to_vec())]);
     }
 
     #[test]
