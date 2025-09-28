@@ -573,4 +573,42 @@ mod tests {
             ])
         );
     }
+
+    #[test]
+    fn test_error_unexpected_token_mismatched_brackets() {
+        let result = parse_str("[1; 2}");
+        assert!(result.is_err());
+        match result.unwrap_err() {
+            YsonParseError::UnexpectedToken(token) => {
+                // Should get RightBrace when expecting RightBracket
+                assert!(matches!(token, YsonToken::RightBrace));
+            }
+            _ => panic!("Expected UnexpectedToken error"),
+        }
+    }
+
+    #[test]
+    fn test_error_unexpected_end_of_input() {
+        let result = parse_str("[1; 2");
+        assert!(result.is_err());
+        match result.unwrap_err() {
+            YsonParseError::UnexpectedEndOfInput => {
+                // This is the expected error
+            }
+            _ => panic!("Expected UnexpectedEndOfInput error"),
+        }
+    }
+
+    #[test]
+    fn test_error_unexpected_token_invalid_map_syntax() {
+        let result = parse_str("{key=}");
+        assert!(result.is_err());
+        match result.unwrap_err() {
+            YsonParseError::UnexpectedToken(token) => {
+                // Should get RightBrace when expecting a value
+                assert!(matches!(token, YsonToken::RightBrace));
+            }
+            _ => panic!("Expected UnexpectedToken error"),
+        }
+    }
 }
