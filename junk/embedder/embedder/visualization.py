@@ -3,12 +3,13 @@ import plotly.express as px
 import plotly.graph_objects as go
 from typing import List
 import logging
+import numpy as np
 
 logger = logging.getLogger(__name__)
 
 def visualize_embeddings(
     texts: List[str],
-    coords,
+    coords: np.ndarray,
     save_html: str = "embedding_viz.html",
     color_by_length: bool = False,
     opacity: float = 0.7,
