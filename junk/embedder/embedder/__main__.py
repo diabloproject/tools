@@ -94,13 +94,6 @@ def run(
 
     start_time = time.time()
 
-    # with Progress(
-    #     SpinnerColumn(),
-    #     TextColumn("[progress.description]{task.description}"),
-    #     console=console
-    # ) as progress:
-    #     task = progress.add_task("Processing...", total=None)
-
     rows, df, embeddings, embed_3d = run_pipeline(
         texts=texts,
         method=method,
