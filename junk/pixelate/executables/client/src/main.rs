@@ -10,6 +10,12 @@ use tokio::sync::Mutex;
 use crossbeam_channel::{unbounded, Receiver, TryRecvError};
 use tokio::runtime::Runtime;
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Resource)]
+enum RenderMode {
+    Texture,
+    Entities,
+}
+
 fn main() {
     App::new()
         .add_plugins(DefaultPlugins.set(WindowPlugin {
@@ -23,15 +29,20 @@ fn main() {
         .insert_resource(TokioRuntime(Arc::new(
             tokio::runtime::Runtime::new().expect("Failed to create Tokio runtime")
         )))
-        .add_systems(Startup, setup)
+        .insert_resource(RenderMode::Texture)
+        .add_systems(Startup, (setup, setup_ui))
         .add_systems(Update, (
             check_connection, 
             check_fetch, 
             check_push, 
-            update_canvas, 
+            update_canvas_texture.run_if(resource_equals(RenderMode::Texture)),
+            update_canvas_entities.run_if(resource_equals(RenderMode::Entities)),
             handle_input, 
             camera_controls,
-            periodic_update
+            periodic_update,
+            animate_pixels,
+            handle_mode_button,
+            update_button_text,
         ))
         .run();
 }
@@ -60,52 +71,49 @@ struct CanvasImageHandle(Handle<Image>);
 #[derive(Resource)]
 struct LastUpdateTimer(Timer);
 
+#[derive(Resource)]
+struct PixelSize(f32);
+
+#[derive(Component)]
+struct ModeButton;
+
+#[derive(Component)]
+struct ModeButtonText;
+
 async fn connect_client() -> Result<DataServiceClient<Channel>, String> {
-    DataServiceClient::connect("http://127.0.1:50051")
+    DataServiceClient::connect("http://127.0.0.1:50051")
         .await
         .map_err(|e| e.to_string())
 }
 
 // Convert color ID (0-255) to RGB
-fn color_id_to_rgb(id: u32) -> [u8; 3] {
-    match id {
-        0 => [0, 0, 0],           // Black
-        1 => [255, 255, 255],     // White
-        2 => [255, 0, 0],         // Red
-        3 => [0, 255, 0],         // Green
-        4 => [0, 0, 255],         // Blue
-        5 => [255, 255, 0],       // Yellow
-        6 => [255, 0, 255],       // Magenta
-        7 => [0, 255, 255],       // Cyan
-        8 => [128, 128, 128],     // Gray
-        255 => [240, 240, 240],   // Light gray (default/empty)
+fn color_id_to_rgb(id: u32) -> Color {
+    let rgb = match id {
+        0 => [0, 0, 0],
+        1 => [255, 255, 255],
+        2 => [255, 0, 0],
+        3 => [0, 255, 0],
+        4 => [0, 0, 255],
+        5 => [255, 255, 0],
+        6 => [255, 0, 255],
+        7 => [0, 255, 255],
+        8 => [128, 128, 128],
+        255 => [240, 240, 240],
         _ => {
-            // Generate a color based on the ID for any other value
             let r = ((id * 137) % 256) as u8;
             let g = ((id * 211) % 256) as u8;
             let b = ((id * 97) % 256) as u8;
             [r, g, b]
         }
-    }
-}
-
-// Convert column-major pixel data (server format) to row-major (image format)
-// Server sends: for x in 0..width { for y in 0..height { pixels[x*height + y] } }
-// Image needs: for y in 0..height { for x in 0..width { pixels[y*width + x] } }
-fn column_major_to_row_major(pixels: &[u32], width: u64, height: u64) -> Vec<u32> {
-    let mut result = vec![0u32; (width * height) as usize];
-    for x in 0..width {
-        for y in 0..height {
-            let col_major_index = (x * height + y) as usize;
-            let row_major_index = (y * width + x) as usize;
-            result[row_major_index] = pixels[col_major_index];
-        }
-    }
-    result
+    };
+    Color::srgb_u8(rgb[0], rgb[1], rgb[2])
 }
 
 fn setup(mut commands: Commands, mut images: ResMut<Assets<Image>>, runtime: Res<TokioRuntime>) {
-    commands.spawn(Camera2d);
+    commands.spawn((
+        Camera2d,
+        Transform::from_xyz(0.0, 0.0, 0.0),
+    ));
 
     // Connect to server asynchronously
     let (tx, rx) = unbounded();
@@ -123,17 +131,18 @@ fn setup(mut commands: Commands, mut images: ResMut<Assets<Image>>, runtime: Res
         height: 100,
         center_x: 0,
         center_y: 0,
-        pixels: vec![0; 10000],
+        pixels: vec![255; 10000],
     };
 
-    // Create initial image
-    // Convert from column-major (server) to row-major (image)
+    // Create placeholder texture for texture mode
     let row_major_pixels = column_major_to_row_major(&canvas_data.pixels, canvas_data.width, canvas_data.height);
     let mut data = Vec::with_capacity((canvas_data.width * canvas_data.height * 4) as usize);
     for &color_id in &row_major_pixels {
-        let rgb = color_id_to_rgb(color_id);
-        data.extend_from_slice(&[rgb[0], rgb[1], rgb[2], 255]);
+        let color = color_id_to_rgb(color_id);
+        let [r, g, b, _] = color.to_srgba().to_u8_array();
+        data.extend_from_slice(&[r, g, b, 255]);
     }
+    
     let mut image = Image::new(
         bevy::render::render_resource::Extent3d {
             width: canvas_data.width as u32,
@@ -145,26 +154,76 @@ fn setup(mut commands: Commands, mut images: ResMut<Assets<Image>>, runtime: Res
         bevy::render::render_resource::TextureFormat::Rgba8UnormSrgb,
         RenderAssetUsages::MAIN_WORLD | RenderAssetUsages::RENDER_WORLD,
     );
-    // Set to nearest neighbor filtering for crisp pixels
     image.sampler = ImageSampler::nearest();
     let image_handle = images.add(image);
 
-    // Spawn sprite with scaling
+    // Spawn sprite for texture mode (initially visible)
+    // Position at world origin (0, 0), texture will be centered
+    // Scale so each texture pixel = pixel_size world units
+    let pixel_size_value = 4.0;
     commands.spawn((
         Sprite::from_image(image_handle.clone()),
-        Transform::from_translation(Vec3::new(
-            canvas_data.center_x as f32,
-            canvas_data.center_y as f32,
-            0.0,
-        ))
-        .with_scale(Vec3::splat(4.0)), // Scale up the sprite
-        CanvasSprite,
+        Transform::from_translation(Vec3::new(0.0, 0.0, 0.0))
+            .with_scale(Vec3::splat(pixel_size_value)),
+        TextureCanvasSprite,
     ));
 
     commands.insert_resource(canvas_data);
     commands.insert_resource(UpdateCanvasFlag(true));
     commands.insert_resource(CanvasImageHandle(image_handle));
+    commands.insert_resource(PixelSize(pixel_size_value));
     commands.insert_resource(LastUpdateTimer(Timer::from_seconds(1.0, TimerMode::Repeating)));
+}
+
+fn setup_ui(mut commands: Commands) {
+    // UI root
+    commands.spawn((
+        Node {
+            width: Val::Percent(100.0),
+            height: Val::Percent(100.0),
+            justify_content: JustifyContent::Start,
+            align_items: AlignItems::Start,
+            padding: UiRect::all(Val::Px(10.0)),
+            ..default()
+        },
+    )).with_children(|parent| {
+        // Mode toggle button
+        parent.spawn((
+            Button,
+            Node {
+                width: Val::Px(200.0),
+                height: Val::Px(50.0),
+                justify_content: JustifyContent::Center,
+                align_items: AlignItems::Center,
+                ..default()
+            },
+            BackgroundColor(Color::srgb(0.15, 0.15, 0.15)),
+            ModeButton,
+        )).with_children(|parent| {
+            parent.spawn((
+                Text::new("Mode: Texture"),
+                TextFont {
+                    font_size: 20.0,
+                    ..default()
+                },
+                TextColor(Color::WHITE),
+                ModeButtonText,
+            ));
+        });
+    });
+}
+
+// Convert column-major pixel data (server format) to row-major (image format)
+fn column_major_to_row_major(pixels: &[u32], width: u64, height: u64) -> Vec<u32> {
+    let mut result = vec![0u32; (width * height) as usize];
+    for x in 0..width {
+        for y in 0..height {
+            let col_major_index = (x * height + y) as usize;
+            let row_major_index = (y * width + x) as usize;
+            result[row_major_index] = pixels[col_major_index];
+        }
+    }
+    result
 }
 
 #[derive(Resource)]
@@ -230,7 +289,7 @@ async fn fetch_snapshot(client: Arc<Mutex<DataServiceClient<Channel>>>) -> Canva
             height: 100,
             center_x: 0,
             center_y: 0,
-            pixels: vec![0; 10000],
+            pixels: vec![255; 10000],
         }
     }
 }
@@ -257,7 +316,6 @@ fn check_fetch(
                 // Task still running
             }
             Err(TryRecvError::Disconnected) => {
-                // Task completed or failed
                 println!("✗ Fetch task disconnected");
                 commands.remove_resource::<FetchTask>();
             }
@@ -265,27 +323,43 @@ fn check_fetch(
     }
 }
 
-fn update_canvas(
+#[derive(Component)]
+struct PixelEntity {
+    x: i64,
+    y: i64,
+    color_id: u32,
+}
+
+#[derive(Component)]
+struct TextureCanvasSprite;
+
+#[derive(Component)]
+struct AnimatePixel {
+    timer: Timer,
+    scale_factor: f32,
+}
+
+fn update_canvas_texture(
     canvas: Res<CanvasData>,
     mut images: ResMut<Assets<Image>>,
     image_handle: Res<CanvasImageHandle>,
     mut update_flag: ResMut<UpdateCanvasFlag>,
+    texture_sprite: Query<Entity, With<TextureCanvasSprite>>,
 ) {
     if !update_flag.0 {
         return;
     }
     update_flag.0 = false;
 
-    println!("Updating canvas texture with new data...");
+    println!("Updating canvas texture...");
     
-    // Update the texture with new pixels using the stored handle
     if let Some(image) = images.get_mut(&image_handle.0) {
-        // Convert from column-major (server) to row-major (image)
         let row_major_pixels = column_major_to_row_major(&canvas.pixels, canvas.width, canvas.height);
         let mut data = Vec::with_capacity((canvas.width * canvas.height * 4) as usize);
         for &color_id in &row_major_pixels {
-            let rgb = color_id_to_rgb(color_id);
-            data.extend_from_slice(&[rgb[0], rgb[1], rgb[2], 255]);
+            let color = color_id_to_rgb(color_id);
+            let [r, g, b, _] = color.to_srgba().to_u8_array();
+            data.extend_from_slice(&[r, g, b, 255]);
         }
         image.data = Some(data);
         image.resize(bevy::render::render_resource::Extent3d {
@@ -294,13 +368,144 @@ fn update_canvas(
             depth_or_array_layers: 1,
         });
         println!("✓ Canvas texture updated!");
-    } else {
-        println!("✗ Could not get mutable image from handle");
     }
 }
 
-#[derive(Component)]
-struct CanvasSprite;
+fn update_canvas_entities(
+    mut commands: Commands,
+    canvas: Res<CanvasData>,
+    pixel_size: Res<PixelSize>,
+    mut update_flag: ResMut<UpdateCanvasFlag>,
+    existing_pixels: Query<Entity, With<PixelEntity>>,
+) {
+    if !update_flag.0 {
+        return;
+    }
+    update_flag.0 = false;
+
+    println!("Updating canvas with entity-based pixels...");
+    
+    // Despawn existing pixels
+    for entity in existing_pixels.iter() {
+        commands.entity(entity).despawn();
+    }
+    
+    // Server sends in column-major order: for x { for y { ... } }
+    // So pixels[x * height + y] is the pixel at (x, y)
+    for x in 0..canvas.width as i64 {
+        for y in 0..canvas.height as i64 {
+            let index = (x * canvas.height as i64 + y) as usize;
+            let color_id = canvas.pixels.get(index).copied().unwrap_or(255);
+            let color = color_id_to_rgb(color_id);
+            
+            // Calculate world position to match texture sprite positioning
+            // Texture sprite is centered at (0, 0) with the canvas image
+            // Image pixels go from (-width/2, -height/2) to (width/2, height/2) in texture space
+            // Multiply by pixel_size to get world space
+            
+            // x and y are in canvas-local coords (0 to width/height)
+            // Convert to centered coords (-width/2 to width/2)
+            let centered_x = x as f32 - (canvas.width as f32 / 2.0) + 0.5;
+            let centered_y = y as f32 - (canvas.height as f32 / 2.0) + 0.5;
+            
+            // Flip Y to match texture orientation (texture Y points down, world Y points up)
+            let world_x = centered_x * pixel_size.0;
+            let world_y = -centered_y * pixel_size.0;
+            
+            commands.spawn((
+                Sprite {
+                    color,
+                    custom_size: Some(Vec2::splat(pixel_size.0)),
+                    ..default()
+                },
+                Transform::from_xyz(world_x, world_y, 0.0),
+                PixelEntity {
+                    x: x + canvas.center_x,
+                    y: y + canvas.center_y,
+                    color_id,
+                },
+            ));
+        }
+    }
+    
+    println!("✓ Created {} pixel entities!", canvas.width * canvas.height);
+}
+
+fn animate_pixels(
+    time: Res<Time>,
+    mut pixels: Query<(&mut Transform, &mut AnimatePixel)>,
+) {
+    for (mut transform, mut anim) in pixels.iter_mut() {
+        anim.timer.tick(time.delta());
+        if anim.timer.just_finished() {
+            anim.timer.reset();
+        }
+        
+        let progress = anim.timer.fraction();
+        let scale = 1.0 + (progress * std::f32::consts::PI * 2.0).sin() * 0.2 * anim.scale_factor;
+        transform.scale = Vec3::splat(scale);
+    }
+}
+
+fn handle_mode_button(
+    mut interaction_query: Query<(&Interaction, &mut BackgroundColor), (Changed<Interaction>, With<ModeButton>)>,
+    mut mode: ResMut<RenderMode>,
+    mut commands: Commands,
+    texture_sprite: Query<Entity, With<TextureCanvasSprite>>,
+    entity_pixels: Query<Entity, With<PixelEntity>>,
+    mut update_flag: ResMut<UpdateCanvasFlag>,
+) {
+    for (interaction, mut color) in interaction_query.iter_mut() {
+        match *interaction {
+            Interaction::Pressed => {
+                println!("Switching render mode...");
+                *mode = match *mode {
+                    RenderMode::Texture => {
+                        // Switch to entities: hide texture sprite
+                        for entity in texture_sprite.iter() {
+                            commands.entity(entity).insert(Visibility::Hidden);
+                        }
+                        RenderMode::Entities
+                    }
+                    RenderMode::Entities => {
+                        // Switch to texture: show texture sprite, hide entities
+                        for entity in texture_sprite.iter() {
+                            commands.entity(entity).insert(Visibility::Visible);
+                        }
+                        for entity in entity_pixels.iter() {
+                            commands.entity(entity).despawn();
+                        }
+                        RenderMode::Texture
+                    }
+                };
+                update_flag.0 = true; // Trigger update in new mode
+                *color = BackgroundColor(Color::srgb(0.25, 0.25, 0.25));
+            }
+            Interaction::Hovered => {
+                *color = BackgroundColor(Color::srgb(0.2, 0.2, 0.2));
+            }
+            Interaction::None => {
+                *color = BackgroundColor(Color::srgb(0.15, 0.15, 0.15));
+            }
+        }
+    }
+}
+
+fn update_button_text(
+    mode: Res<RenderMode>,
+    mut text_query: Query<&mut Text, With<ModeButtonText>>,
+) {
+    if !mode.is_changed() {
+        return;
+    }
+    
+    for mut text in text_query.iter_mut() {
+        text.0 = match *mode {
+            RenderMode::Texture => "Mode: Texture".to_string(),
+            RenderMode::Entities => "Mode: Entities".to_string(),
+        };
+    }
+}
 
 #[derive(Resource, Default)]
 struct DragState {
@@ -325,11 +530,9 @@ fn camera_controls(
         return;
     };
     
-    // Get the orthographic projection scale
     let scale = if let Projection::Orthographic(ref mut ortho) = projection.as_mut() {
-        // Zoom with mouse wheel
         for event in scroll_events.read() {
-            let zoom_delta = -event.y * 0.03;
+            let zoom_delta = -event.y * 0.1;
             ortho.scale = (ortho.scale + zoom_delta).max(0.1).min(10.0);
         }
         ortho.scale
@@ -337,7 +540,6 @@ fn camera_controls(
         1.0
     };
     
-    // Pan with Shift + Left Mouse Button drag
     let shift_pressed = keys.pressed(KeyCode::ShiftLeft) || keys.pressed(KeyCode::ShiftRight);
     
     if let Ok(window) = windows.single() {
@@ -345,7 +547,6 @@ fn camera_controls(
             if buttons.pressed(MouseButton::Left) && shift_pressed {
                 if let Some(last_pos) = drag_state.last_pos {
                     let delta = cursor_pos - last_pos;
-                    // Move camera in opposite direction to simulate dragging the canvas
                     camera_transform.translation.x -= delta.x * scale;
                     camera_transform.translation.y += delta.y * scale;
                 }
@@ -366,13 +567,14 @@ fn handle_input(
     keys: Res<ButtonInput<KeyCode>>,
     windows: Query<&Window>,
     camera_query: Query<(&Camera, &GlobalTransform), With<Camera2d>>,
-    sprite_query: Query<&Transform, With<CanvasSprite>>,
     canvas: Res<CanvasData>,
+    pixel_size: Res<PixelSize>,
+    mode: Res<RenderMode>,
+    texture_sprite_query: Query<&Transform, With<TextureCanvasSprite>>,
     client: Option<Res<GrpcClient>>,
     mut commands: Commands,
     runtime: Res<TokioRuntime>,
 ) {
-    // Only draw if shift is NOT pressed (to avoid drawing while panning)
     let shift_pressed = keys.pressed(KeyCode::ShiftLeft) || keys.pressed(KeyCode::ShiftRight);
     
     if buttons.just_pressed(MouseButton::Left) && !shift_pressed {
@@ -380,52 +582,60 @@ fn handle_input(
             if let Ok(window) = windows.single() {
                 if let Some(cursor_pos) = window.cursor_position() {
                     if let Ok((camera, camera_transform)) = camera_query.single() {
-                        if let Ok(sprite_transform) = sprite_query.single() {
-                            // Convert screen coordinates to world coordinates
-                            if let Ok(world_pos) = camera.viewport_to_world_2d(camera_transform, cursor_pos) {
-                                // The sprite is positioned at (center_x, center_y) in world space
-                                // and is scaled by 4.0
-                                let sprite_pos = sprite_transform.translation.truncate();
-                                let sprite_scale = sprite_transform.scale.x; // Uniform scale
-                                
-                                // Calculate position relative to sprite center in world space
-                                let relative_world = world_pos - sprite_pos;
-                                
-                                // Divide by scale to get position in unscaled sprite space
-                                // In sprite space, the sprite is canvas.width x canvas.height pixels
-                                // with origin at center, so ranges from -width/2 to +width/2
-                                let sprite_local_x = relative_world.x / sprite_scale;
-                                let sprite_local_y = relative_world.y / sprite_scale;
-                                
-                                // Convert from sprite-local coordinates (centered at 0,0) 
-                                // to pixel coordinates (0-based from top-left)
-                                // Note: Y is flipped (positive Y is up in world, down in pixel coords)
-                                let pixel_x = (sprite_local_x + (canvas.width as f32 / 2.0)).floor() as i64;
-                                let pixel_y = ((canvas.height as f32 / 2.0) - sprite_local_y).floor() as i64;
-                                
-                                // Convert from canvas-local pixel coords to global pixel coords
-                                let global_pixel_x = pixel_x + canvas.center_x;
-                                let global_pixel_y = pixel_y + canvas.center_y;
-                                
-                                println!("Click at screen: {:?}, world: {:?}, sprite_local: ({:.2}, {:.2}), canvas_pixel: ({}, {}), global_pixel: ({}, {})", 
-                                         cursor_pos, world_pos, sprite_local_x, sprite_local_y,
-                                         pixel_x, pixel_y, global_pixel_x, global_pixel_y);
-                                
-                                // Check bounds
-                                if pixel_x >= 0 && pixel_x < canvas.width as i64 && 
-                                   pixel_y >= 0 && pixel_y < canvas.height as i64 {
-                                    // Send push_pixel with red color (ID 2)
-                                    let client_clone = client.0.clone();
-                                    let (tx, rx) = unbounded();
-                                    let rt = runtime.0.clone();
-                                    std::thread::spawn(move || {
-                                        rt.block_on(push_pixel(global_pixel_x, global_pixel_y, 2, 1, client_clone));
-                                        let _ = tx.send(());
-                                    });
-                                    commands.insert_resource(PushTask(rx));
-                                } else {
-                                    println!("Click outside canvas bounds");
+                        if let Ok(world_pos) = camera.viewport_to_world_2d(camera_transform, cursor_pos) {
+                            let pixel_coords = match *mode {
+                                RenderMode::Texture => {
+                                    // Texture mode: account for sprite position and scale
+                                    if let Ok(sprite_transform) = texture_sprite_query.single() {
+                                        let sprite_pos = sprite_transform.translation.truncate();
+                                        let sprite_scale = sprite_transform.scale.x;
+                                        
+                                        let sprite_local_x = (world_pos.x - sprite_pos.x) / sprite_scale;
+                                        let sprite_local_y = (world_pos.y - sprite_pos.y) / sprite_scale;
+                                        
+                                        let pixel_x = (sprite_local_x + (canvas.width as f32 / 2.0)).floor() as i64;
+                                        let pixel_y = ((canvas.height as f32 / 2.0) - sprite_local_y).floor() as i64;
+                                        
+                                        let global_pixel_x = pixel_x + canvas.center_x;
+                                        let global_pixel_y = pixel_y + canvas.center_y;
+                                        
+                                        Some((global_pixel_x, global_pixel_y))
+                                    } else {
+                                        None
+                                    }
                                 }
+                                RenderMode::Entities => {
+                                    // Entity mode: world position to pixel coordinate
+                                    // Entities are positioned centered at (0,0) just like texture
+                                    // Convert world position to centered pixel coords
+                                    let centered_x = world_pos.x / pixel_size.0;
+                                    let centered_y = -world_pos.y / pixel_size.0; // Flip Y back
+                                    
+                                    // Convert from centered coords to canvas-local pixel coords
+                                    let pixel_x = (centered_x + (canvas.width as f32 / 2.0)).floor() as i64;
+                                    let pixel_y = (centered_y + (canvas.height as f32 / 2.0)).floor() as i64;
+                                    
+                                    // Convert to global pixel coords
+                                    let global_pixel_x = pixel_x + canvas.center_x;
+                                    let global_pixel_y = pixel_y + canvas.center_y;
+                                    
+                                    Some((global_pixel_x, global_pixel_y))
+                                }
+                            };
+                            
+                            if let Some((pixel_x, pixel_y)) = pixel_coords {
+                                println!("Click at screen: {:?}, world: {:?}, pixel: ({}, {})", 
+                                         cursor_pos, world_pos, pixel_x, pixel_y);
+                                
+                                // Send push_pixel with red color (ID 2)
+                                let client_clone = client.0.clone();
+                                let (tx, rx) = unbounded();
+                                let rt = runtime.0.clone();
+                                std::thread::spawn(move || {
+                                    rt.block_on(push_pixel(pixel_x, pixel_y, 2, 1, client_clone));
+                                    let _ = tx.send(());
+                                });
+                                commands.insert_resource(PushTask(rx));
                             }
                         }
                     }
@@ -454,7 +664,6 @@ fn check_push(mut commands: Commands, mut push_task: Option<ResMut<PushTask>>, c
         match task.0.try_recv() {
             Ok(_) => {
                 commands.remove_resource::<PushTask>();
-                // Trigger fetch after push
                 if let Some(client) = client {
                     let client_clone = client.0.clone();
                     let (tx, rx) = unbounded();
@@ -466,11 +675,8 @@ fn check_push(mut commands: Commands, mut push_task: Option<ResMut<PushTask>>, c
                     commands.insert_resource(FetchTask(rx));
                 }
             }
-            Err(TryRecvError::Empty) => {
-                // Task still running
-            }
+            Err(TryRecvError::Empty) => {}
             Err(TryRecvError::Disconnected) => {
-                // Task completed or failed
                 commands.remove_resource::<PushTask>();
             }
         }
