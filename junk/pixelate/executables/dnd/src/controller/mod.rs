@@ -1,4 +1,5 @@
 pub mod primitive;
+pub mod optimized;
 
 use crate::types::PixelInfo;
 

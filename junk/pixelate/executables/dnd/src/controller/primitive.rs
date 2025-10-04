@@ -2,7 +2,6 @@ use crate::backing_store::BackingStore;
 use crate::controller::{PixelInfo, StoreController};
 use std::sync::Arc;
 use tracing::debug;
-use tracing::field::debug;
 
 pub struct PrimitiveStoreController {
     pub backing: Arc<dyn BackingStore>,

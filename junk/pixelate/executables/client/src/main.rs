@@ -172,7 +172,7 @@ fn setup(mut commands: Commands, mut images: ResMut<Assets<Image>>, runtime: Res
     commands.insert_resource(UpdateCanvasFlag(true));
     commands.insert_resource(CanvasImageHandle(image_handle));
     commands.insert_resource(PixelSize(pixel_size_value));
-    commands.insert_resource(LastUpdateTimer(Timer::from_seconds(1.0, TimerMode::Repeating)));
+    commands.insert_resource(LastUpdateTimer(Timer::from_seconds(0.1, TimerMode::Repeating)));
 }
 
 fn setup_ui(mut commands: Commands) {

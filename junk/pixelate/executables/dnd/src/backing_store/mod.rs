@@ -1,4 +1,5 @@
 pub mod ram;
+pub mod disk;
 
 use crate::types::PixelInfo;
 

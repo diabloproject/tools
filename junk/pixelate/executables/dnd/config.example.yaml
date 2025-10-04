@@ -1,0 +1,32 @@
+# Data Node Configuration Example
+
+# Tiling configuration
+tiling:
+  size: [512, 512]  # Width and height of this node's tile
+  pos: [0, 0]       # Position of this tile in the grid
+
+# Storage configuration (optional)
+storage:
+  # Backing store type: "ram" or "disk"
+  # - "ram": Fast, in-memory storage (default)
+  # - "disk": Persistent disk storage with chunked files
+  backing_store: "ram"  # or "disk"
+  
+  # Controller type: "optimized" or "primitive"
+  # - "optimized": Caches current snapshot for instant reads (recommended, default)
+  # - "primitive": No caching, always queries backing store
+  controller: "optimized"  # or "primitive"
+  
+  # Directory for disk storage (only used when backing_store is "disk")
+  data_dir: "./data"
+
+# Performance characteristics:
+# - optimized + ram: Best for dev/testing, instant snapshots, data lost on restart
+# - optimized + disk: Best for production, instant snapshots, persistent storage
+# - primitive + ram: Slower snapshots, useful for debugging
+# - primitive + disk: Slowest, but minimal memory usage
+
+# Notes:
+# - Disk storage uses 256x256 pixel chunks to avoid file descriptor limits
+# - For a 4096x4096 canvas, disk storage creates ~256 chunk files instead of 16M+ files
+# - Optimized controller keeps entire current state in memory for O(1) snapshot operations

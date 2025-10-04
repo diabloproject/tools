@@ -1,0 +1,11 @@
+[package]
+name = "pixelate-bench"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+engine-proto = { workspace = true }
+tonic = { workspace = true }
+tokio = { workspace = true }
+anyhow = { workspace = true }
+rand = "0.8"
