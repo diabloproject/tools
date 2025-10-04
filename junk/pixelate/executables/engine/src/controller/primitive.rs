@@ -1,6 +1,8 @@
 use crate::backing_store::BackingStore;
 use crate::controller::{PixelInfo, StoreController};
 use std::sync::Arc;
+use tracing::debug;
+use tracing::field::debug;
 
 pub struct PrimitiveStoreController {
     pub backing: Arc<dyn BackingStore>,
@@ -8,6 +10,8 @@ pub struct PrimitiveStoreController {
 
 impl PrimitiveStoreController {
     pub fn new(backing_store: Arc<dyn BackingStore>) -> Self {
+        debug!("Initializing primitive store controller");
+        debug!("Store controller initialized");
         Self {
             backing: backing_store,
         }
@@ -35,8 +39,8 @@ impl StoreController for PrimitiveStoreController {
     fn snapshot(&self, timestamp: u64) -> Vec<PixelInfo> {
         let frame = self.backing.describe().frame;
         let mut infos = Vec::with_capacity(frame.width as usize * frame.height as usize);
-        for x in (0 - frame.center_x as i64)..(frame.width as i64 - frame.center_x as i64) {
-            for y in (0 - frame.center_y as i64)..(frame.height as i64 - frame.center_y as i64) {
+        for x in (0 - frame.center_x)..(frame.width as i64 - frame.center_x) {
+            for y in (0 - frame.center_y)..(frame.height as i64 - frame.center_y) {
                 infos.push(
                     self.pixel_info_at(x, y, timestamp)
                         .map(|pi| pi)

@@ -56,13 +56,13 @@ impl DataNode {
             Frame {
                 width: config.tiling.size.0,
                 height: config.tiling.size.1,
-                center_x: - (config.tiling.size.0 as i64 * config.tiling.pos.0),
-                center_y: - (config.tiling.size.1 as i64 * config.tiling.pos.1),
+                center_x: -(config.tiling.size.0 as i64 * config.tiling.pos.0),
+                center_y: -(config.tiling.size.1 as i64 * config.tiling.pos.1),
             },
             |x, y| PixelInfo {
                 x,
                 y,
-                color: 0,
+                color: 255,
                 timestamp: 0,
                 user_id: 0,
                 generation: 0,
@@ -128,15 +128,14 @@ impl DataService for DataNode {
             width: frame.width,
             center_x: frame.center_x,
             center_y: frame.center_y,
-            pixel_values: vec![],
+            pixel_values: colors,
         }))
     }
 }
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
-    let addr = "[::1]:50051".parse()?;
-    let server = DataNode::new();
+    let addr = "0.0.0.0:50051".parse()?;
     tracing_subscriber::registry()
         .with(
             tracing_subscriber::EnvFilter::try_from_default_env()
@@ -145,6 +144,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .with(tracing_subscriber::fmt::layer())
         .init();
 
+    let server = DataNode::new();
     info!("Starting server on {}", addr);
 
     Server::builder()

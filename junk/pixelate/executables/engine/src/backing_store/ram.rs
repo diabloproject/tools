@@ -2,7 +2,7 @@ use crate::backing_store::{BackingStore, BackingStoreDescriptor, Frame, VNode};
 use crate::types::PixelInfo;
 use std::borrow::Cow;
 use std::sync::RwLock;
-use tracing::debug;
+use tracing::{debug, trace};
 
 pub struct RamBackingStore {
     changelogs: RwLock<Vec<Vec<VNode>>>,
@@ -16,9 +16,9 @@ impl RamBackingStore {
             frame.width, frame.height, frame.center_x, frame.center_y
         );
         let mut changelogs = Vec::with_capacity(frame.width as usize);
-        for x in (0 - frame.center_x as i64)..(frame.width as i64 - frame.center_x as i64) {
+        for x in (0 - frame.center_x)..(frame.width as i64 - frame.center_x) {
             let mut column = Vec::with_capacity(frame.height as usize);
-            for y in (0 - frame.center_y as i64)..(frame.height as i64 - frame.center_y as i64) {
+            for y in (0 - frame.center_y)..(frame.height as i64 - frame.center_y) {
                 let init = initializer(x, y);
                 if init.x != x || init.y != y {
                     panic!("Initializer returned a wrong pixel location");
@@ -44,29 +44,29 @@ impl BackingStore for RamBackingStore {
     }
 
     fn get_changelog(&self, x: i64, y: i64) -> Option<VNode> {
-        debug!("Looking for pixel ({}, {}) in RAM backing store", x, y);
+        trace!("Looking for pixel ({}, {}) in RAM backing store", x, y);
         if x < 0 - self.frame.center_x
             || x > self.frame.width as i64 - self.frame.center_x
         {
-            debug!("Pixel ({}, {}) is out of bounds", x, y);
+            trace!("Pixel ({}, {}) is out of bounds", x, y);
             return None;
         }
         if y < 0 - self.frame.center_y
             || y > self.frame.height as i64 - self.frame.center_y
         {
-            debug!("Pixel ({}, {}) is out of bounds", x, y);
+            trace!("Pixel ({}, {}) is out of bounds", x, y);
             return None;
         }
         let changelogs = self.changelogs.read().unwrap();
         let res = changelogs[(x + self.frame.center_x) as usize]
             [(y + self.frame.center_y) as usize]
             .clone();
-        debug!("Pixel ({}, {}) found (color {})", x, y, res.side.color);
+        trace!("Pixel ({}, {}) found (color {})", x, y, res.side.color);
         Some(res)
     }
 
     fn append_change(&self, x: i64, y: i64, color: u8, user_id: u64, timestamp: u64) {
-        debug!("Appending change to pixel ({}, {}) in RAM backing store", x, y);
+        trace!("Appending change to pixel ({}, {}) in RAM backing store", x, y);
         let Some(old_changelog) = self.get_changelog(x, y) else {
             return;
         };
@@ -85,6 +85,6 @@ impl BackingStore for RamBackingStore {
             side: pixel_info,
             next: Some(Box::new(old_changelog)),
         };
-        debug!("Pixel ({}, {}) appended", x, y);
+        trace!("Pixel ({}, {}) appended", x, y);
     }
 }

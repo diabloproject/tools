@@ -1,0 +1,12 @@
+[package]
+name = "pixelate-client"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+bevy = "0.17.1"
+engine-proto = { workspace = true }
+tonic = { workspace = true }
+tokio = { workspace = true }
+anyhow = { workspace = true }
+crossbeam-channel = "0.5"
