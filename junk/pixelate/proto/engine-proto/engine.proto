@@ -1,0 +1,44 @@
+syntax = "proto3";
+
+package pixelate_engine;
+
+message PushPixelRequest {
+  sint64 x = 1;
+  sint64 y = 2;
+  uint32 color = 3;
+  uint64 userId = 4;
+}
+
+message PushPixelResponse {}
+
+message PixelInfoRequest {
+  sint64 x = 1;
+  sint64 y = 2;
+}
+
+message PixelInfoResponse {
+  sint64 x = 1;
+  sint64 y = 2;
+  uint32 color = 3;
+  uint64 userId = 4;
+  uint32 generation = 5;
+}
+
+message SnapshotRequest {
+  uint64 timestamp = 1;
+}
+
+message SnapshotResponse {
+  uint64 height = 1;
+  uint64 width = 2;
+  sint64 center_x = 3;
+  sint64 center_y = 4;
+  repeated uint32 pixelValues = 5;
+}
+
+
+service DataService {
+  rpc PushPixel(PushPixelRequest) returns (PushPixelResponse);
+  rpc PixelInfo(PixelInfoRequest) returns (PixelInfoResponse);
+  rpc Snapshot(SnapshotRequest) returns (SnapshotResponse);
+}

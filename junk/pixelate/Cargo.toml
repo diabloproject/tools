@@ -1,0 +1,21 @@
+[workspace]
+resolver = "3"
+members = ["executables/engine", "proto/engine-proto"]
+
+
+[workspace.dependencies]
+engine-proto = { path = "./proto/engine-proto" }
+tokio = { version = "1.47.1", features = ["full"] }
+hyper = { version = "1.7.0", features = ["full"] }
+tokio-stream = { version = "0.1.17", features = ["full"] }
+prost = { version = "0.14.1" }
+tonic = { version = "0.14.2" }
+tonic-prost = { version = "0.14.2" }
+tonic-build = { version = "0.14.2" }
+tonic-prost-build = { version = "0.14.2" }
+anyhow = { version = "1.0.100" }
+thiserror = { version = "2.0.17" }
+tracing = { version = "0.1.41" }
+tracing-subscriber = { version = "0.3.20", features = ["env-filter", "fmt"] }
+config = { version = "0.15.18" }
+serde = { version = "1.0.228", features = ["derive"] }
