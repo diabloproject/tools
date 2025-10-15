@@ -1,7 +1,0 @@
-[workspace]
-resolver = "3"
-members = ["crates/builder", "crates/cli"]
-
-[workspace.dependencies]
-builder = { path = "crates/builder" }
-lisp = { git = "https://github.com/diabloproject/libraries" }
