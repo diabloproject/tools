@@ -1,0 +1,19 @@
+[package]
+name = "diabloproject"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+cmd = { workspace = true, optional = true }
+yson = { workspace = true, optional = true }
+stdd = { workspace = true, optional = true }
+dlog = { workspace = true, optional = true }
+describe-project = { workspace = true, optional = true }
+
+[features]
+cmd = ["dep:cmd"]
+yson = ["dep:yson"]
+std = ["dep:stdd"]
+describe-project = ["dep:describe-project"]
+log = ["dep:dlog"]
+default = ["cmd", "yson", "std", "describe-project", "log"]
