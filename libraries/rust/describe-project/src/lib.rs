@@ -75,6 +75,12 @@ impl<'src> Parser<'src> {
             }
             self.pos += 1;
         }
+        if self.pos == identifier_start {
+            return Err(ParseError {
+                line: self.pos,
+                message: "Expected identifier, found none".to_string(),
+            });
+        }
         let identifier_end = self.pos - 1;
         Ok(&self.source[identifier_start..=identifier_end])
     }
