@@ -1,3 +1,1 @@
-fn cache_root() {
-    
-}
+fn cache_root() {}

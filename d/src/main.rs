@@ -19,8 +19,6 @@ fn main() {
 
     let repo_url = "https://github.com/diabloproject/tools";
 
-
-
     let content = std::fs::read_to_string("./describe.project").unwrap();
     let mut parser = diabloproject::describe_project::Parser::new(&content);
     let project = parser.parse().expect("Failed to parse describe.project");
@@ -32,9 +30,7 @@ fn main() {
         .find(|x| x.name == "USE")
         .expect("Failed to find USE variable");
     match use_var.value {
-        "CARGO" => {
-
-        }
+        "CARGO" => {}
         other => {
             eprintln!("Unknown USE ruleset: {}", other);
             std::process::exit(1);

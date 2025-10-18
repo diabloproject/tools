@@ -54,6 +54,9 @@ impl ConsoleLogWriter {
     }
 
     fn display_progress_bars(&mut self) {
+        if self.progresses.is_empty() {
+            return;
+        }
         self.move_cursor_before_first_progress_bar();
         self.move_cursor_down(1);
         let mut ids: Vec<_> = self.progresses.keys().cloned().collect();
@@ -77,10 +80,13 @@ impl ConsoleLogWriter {
             LogLevel::Error => "31",
             LogLevel::Fatal => "35",
         });
-        print!("[{} {}]\x1b[0m {}", record.level, record.timestamp, &record.message);
+        print!(
+            "[{} {}]\x1b[0m {}",
+            record.level, record.timestamp, &record.message
+        );
         std::io::stdout().flush().ok();
     }
-    
+
     fn set_color(&self, color: &str) {
         print!("\x1b[{}m", color);
     }
@@ -182,7 +188,11 @@ impl LogWriter for ConsoleLogWriter {
         let (description, total, value) = self.progresses.get(&id).unwrap();
         self.display_progress_bar(description, *total, *value);
         self.progresses.remove(&id);
-        self.lines_written += 1;
+        self.churn += 1;
         self.display_progress_bars();
+    }
+
+    fn complete(&mut self) {
+        println!();
     }
 }
