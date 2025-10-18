@@ -8,7 +8,7 @@ import torchvision
 import torchvision.transforms.functional as TF
 import torch.nn.functional as F
 
-BOX_SIZE = 128
+BOX_SIZE = 32
 DISTANCE_PER_PIXEL = 0.002
 SCAN_TARGET_SIZE = 32 * BOX_SIZE
 GRID_SIZE = SCAN_TARGET_SIZE // BOX_SIZE
