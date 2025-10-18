@@ -31,12 +31,22 @@ pub struct StaticHashMap<K, V, const CAPACITY: usize> {
     data: [Option<(K, V)>; CAPACITY],
 }
 
-impl<K, V, const CAPACITY: usize> StaticHashMap<K, V, CAPACITY> {
+impl<K: Copy, V: Copy, const CAPACITY: usize> StaticHashMap<K, V, CAPACITY> {
     pub const fn new() -> Self {
+        Self {
+            data: [None; CAPACITY],
+        }
+    }
+}
+
+impl<K, V, const CAPACITY: usize> StaticHashMap<K, V, CAPACITY> {
+    pub fn new_iter() -> Self {
         unsafe {
-            Self {
-                data: std::mem::zeroed(),
+            let mut data: [Option<(K, V)>; CAPACITY] = std::mem::zeroed();
+            for i in 0..CAPACITY {
+                data[i] = None;
             }
+            Self { data }
         }
     }
 
@@ -167,7 +177,7 @@ where
 
 impl<K, V, const CAPACITY: usize> Default for StaticHashMap<K, V, CAPACITY> {
     fn default() -> Self {
-        Self::new()
+        Self::new_iter()
     }
 }
 

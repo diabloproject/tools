@@ -1,8 +1,37 @@
-#[derive(Clone, Copy, Eq, PartialEq, Hash)]
+use std::hash::{Hash, Hasher};
+
+#[derive(Clone, Copy)]
 pub struct StaticVec<T, const CAPACITY: usize> {
     data: [T; CAPACITY],
     len: usize,
 }
+
+
+
+impl<T: PartialEq, const CAPACITY: usize> PartialEq for StaticVec<T, CAPACITY> {
+    fn eq(&self, other: &Self) -> bool {
+        if self.len != other.len {
+            return false;
+        }
+        for i in 0..self.len {
+            if self.data[i] != other.data[i] {
+                return false;
+            }
+        }
+        true
+    }
+}
+
+impl<T: Eq, const CAPACITY: usize> Eq for StaticVec<T, CAPACITY> {}
+
+impl<T: Hash, const CAPACITY: usize> Hash for StaticVec<T, CAPACITY> {
+    fn hash<H: Hasher>(&self, state: &mut H) {
+        for item in self.as_slice() {
+            item.hash(state);
+        }
+    }
+}
+
 
 impl<T, const CAPACITY: usize> StaticVec<T, CAPACITY> {
     pub const fn new() -> Self {
