@@ -85,9 +85,22 @@ impl<const CAPACITY: usize> std::ops::DerefMut for StaticString<CAPACITY> {
     }
 }
 
+#[derive(Debug)]
 pub enum StaticStringConversionError {
     StrTooLong,
 }
+
+impl std::fmt::Display for StaticStringConversionError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            StaticStringConversionError::StrTooLong => {
+                write!(f, "String is too long to fit in static string")
+            }
+        }
+    }
+}
+
+impl std::error::Error for StaticStringConversionError {}
 
 impl<const CAPACITY: usize> std::str::FromStr for StaticString<CAPACITY> {
     type Err = StaticStringConversionError;
