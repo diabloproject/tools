@@ -151,8 +151,8 @@ impl<E: Error, R: Iterator<Item = Result<YsonToken, E>>> YsonParser<E, R> {
                     match right_bracket {
                         Ok(YsonToken::RightBracket) => {
                             self.lexer.next();
-                            break
-                        },
+                            break;
+                        }
                         Ok(_) => (),
                         Err(_) => {
                             eof_guard!(self.lexer.next())?;
@@ -163,9 +163,19 @@ impl<E: Error, R: Iterator<Item = Result<YsonToken, E>>> YsonParser<E, R> {
                     let next = eof_guard!(self.lexer.peek());
                     match next {
                         Ok(YsonToken::RightBracket) => continue,
-                        Ok(YsonToken::Semicolon) => { self.lexer.next(); },
-                        Ok(_) => return Err(YsonParseError::UnexpectedToken(self.lexer.next().unwrap().unwrap())),
-                        Err(_) => return Err(YsonParseError::IteratorError(self.lexer.next().unwrap().unwrap_err())),
+                        Ok(YsonToken::Semicolon) => {
+                            self.lexer.next();
+                        }
+                        Ok(_) => {
+                            return Err(YsonParseError::UnexpectedToken(
+                                self.lexer.next().unwrap().unwrap(),
+                            ));
+                        }
+                        Err(_) => {
+                            return Err(YsonParseError::IteratorError(
+                                self.lexer.next().unwrap().unwrap_err(),
+                            ));
+                        }
                     }
                 }
                 Ok(YsonValue::Array(elements))
@@ -183,8 +193,8 @@ impl<E: Error, R: Iterator<Item = Result<YsonToken, E>>> YsonParser<E, R> {
                     match right_brace {
                         Ok(YsonToken::RightBrace) => {
                             self.lexer.next();
-                            break
-                        },
+                            break;
+                        }
                         Ok(_) => (),
                         Err(_) => {
                             eof_guard!(self.lexer.next())?;
@@ -206,10 +216,18 @@ impl<E: Error, R: Iterator<Item = Result<YsonToken, E>>> YsonParser<E, R> {
                     match next {
                         Ok(YsonToken::Semicolon) => {
                             self.lexer.next();
-                        },
+                        }
                         Ok(YsonToken::RightBrace) => (),
-                        Ok(_) => return Err(YsonParseError::UnexpectedToken(self.lexer.next().unwrap().unwrap())),
-                        Err(_) => return Err(YsonParseError::IteratorError(self.lexer.next().unwrap().unwrap_err())),
+                        Ok(_) => {
+                            return Err(YsonParseError::UnexpectedToken(
+                                self.lexer.next().unwrap().unwrap(),
+                            ));
+                        }
+                        Err(_) => {
+                            return Err(YsonParseError::IteratorError(
+                                self.lexer.next().unwrap().unwrap_err(),
+                            ));
+                        }
                     }
                 }
                 Ok(YsonValue::Map(pairs))
@@ -330,9 +348,18 @@ mod tests {
         assert_eq!(
             node.value,
             YsonValue::Array(vec![
-                YsonNode { value: YsonValue::SignedInteger(1), attributes: vec![] },
-                YsonNode { value: YsonValue::SignedInteger(2), attributes: vec![] },
-                YsonNode { value: YsonValue::SignedInteger(3), attributes: vec![] },
+                YsonNode {
+                    value: YsonValue::SignedInteger(1),
+                    attributes: vec![]
+                },
+                YsonNode {
+                    value: YsonValue::SignedInteger(2),
+                    attributes: vec![]
+                },
+                YsonNode {
+                    value: YsonValue::SignedInteger(3),
+                    attributes: vec![]
+                },
             ])
         );
         assert!(node.attributes.is_empty());
@@ -344,9 +371,18 @@ mod tests {
         assert_eq!(
             node.value,
             YsonValue::Array(vec![
-                YsonNode { value: YsonValue::SignedInteger(1), attributes: vec![] },
-                YsonNode { value: YsonValue::SignedInteger(2), attributes: vec![] },
-                YsonNode { value: YsonValue::SignedInteger(3), attributes: vec![] },
+                YsonNode {
+                    value: YsonValue::SignedInteger(1),
+                    attributes: vec![]
+                },
+                YsonNode {
+                    value: YsonValue::SignedInteger(2),
+                    attributes: vec![]
+                },
+                YsonNode {
+                    value: YsonValue::SignedInteger(3),
+                    attributes: vec![]
+                },
             ])
         );
     }
@@ -366,11 +402,17 @@ mod tests {
             YsonValue::Map(vec![
                 (
                     b"a".to_vec(),
-                    YsonNode { value: YsonValue::SignedInteger(1), attributes: vec![] }
+                    YsonNode {
+                        value: YsonValue::SignedInteger(1),
+                        attributes: vec![]
+                    }
                 ),
                 (
                     b"b".to_vec(),
-                    YsonNode { value: YsonValue::SignedInteger(2), attributes: vec![] }
+                    YsonNode {
+                        value: YsonValue::SignedInteger(2),
+                        attributes: vec![]
+                    }
                 ),
             ])
         );
@@ -385,11 +427,17 @@ mod tests {
             YsonValue::Map(vec![
                 (
                     b"a".to_vec(),
-                    YsonNode { value: YsonValue::SignedInteger(1), attributes: vec![] }
+                    YsonNode {
+                        value: YsonValue::SignedInteger(1),
+                        attributes: vec![]
+                    }
                 ),
                 (
                     b"b".to_vec(),
-                    YsonNode { value: YsonValue::SignedInteger(2), attributes: vec![] }
+                    YsonNode {
+                        value: YsonValue::SignedInteger(2),
+                        attributes: vec![]
+                    }
                 ),
             ])
         );
@@ -436,9 +484,18 @@ mod tests {
         assert_eq!(
             node.value,
             YsonValue::Array(vec![
-                YsonNode { value: YsonValue::SignedInteger(1), attributes: vec![] },
-                YsonNode { value: YsonValue::SignedInteger(2), attributes: vec![] },
-                YsonNode { value: YsonValue::SignedInteger(3), attributes: vec![] },
+                YsonNode {
+                    value: YsonValue::SignedInteger(1),
+                    attributes: vec![]
+                },
+                YsonNode {
+                    value: YsonValue::SignedInteger(2),
+                    attributes: vec![]
+                },
+                YsonNode {
+                    value: YsonValue::SignedInteger(3),
+                    attributes: vec![]
+                },
             ])
         );
     }
@@ -451,11 +508,17 @@ mod tests {
             YsonValue::Map(vec![
                 (
                     b"a".to_vec(),
-                    YsonNode { value: YsonValue::SignedInteger(1), attributes: vec![] }
+                    YsonNode {
+                        value: YsonValue::SignedInteger(1),
+                        attributes: vec![]
+                    }
                 ),
                 (
                     b"b".to_vec(),
-                    YsonNode { value: YsonValue::SignedInteger(2), attributes: vec![] }
+                    YsonNode {
+                        value: YsonValue::SignedInteger(2),
+                        attributes: vec![]
+                    }
                 ),
             ])
         );
@@ -473,15 +536,27 @@ mod tests {
         assert_eq!(
             node.value,
             YsonValue::Array(vec![
-                YsonNode { value: YsonValue::SignedInteger(1), attributes: vec![] },
+                YsonNode {
+                    value: YsonValue::SignedInteger(1),
+                    attributes: vec![]
+                },
                 YsonNode {
                     value: YsonValue::Array(vec![
-                        YsonNode { value: YsonValue::SignedInteger(2), attributes: vec![] },
-                        YsonNode { value: YsonValue::SignedInteger(3), attributes: vec![] },
+                        YsonNode {
+                            value: YsonValue::SignedInteger(2),
+                            attributes: vec![]
+                        },
+                        YsonNode {
+                            value: YsonValue::SignedInteger(3),
+                            attributes: vec![]
+                        },
                     ]),
                     attributes: vec![]
                 },
-                YsonNode { value: YsonValue::SignedInteger(4), attributes: vec![] },
+                YsonNode {
+                    value: YsonValue::SignedInteger(4),
+                    attributes: vec![]
+                },
             ])
         );
     }
@@ -494,7 +569,10 @@ mod tests {
             YsonValue::Map(vec![
                 (
                     b"a".to_vec(),
-                    YsonNode { value: YsonValue::SignedInteger(1), attributes: vec![] }
+                    YsonNode {
+                        value: YsonValue::SignedInteger(1),
+                        attributes: vec![]
+                    }
                 ),
                 (
                     b"b".to_vec(),
@@ -502,11 +580,17 @@ mod tests {
                         value: YsonValue::Map(vec![
                             (
                                 b"c".to_vec(),
-                                YsonNode { value: YsonValue::SignedInteger(2), attributes: vec![] }
+                                YsonNode {
+                                    value: YsonValue::SignedInteger(2),
+                                    attributes: vec![]
+                                }
                             ),
                             (
                                 b"d".to_vec(),
-                                YsonNode { value: YsonValue::SignedInteger(3), attributes: vec![] }
+                                YsonNode {
+                                    value: YsonValue::SignedInteger(3),
+                                    attributes: vec![]
+                                }
                             ),
                         ]),
                         attributes: vec![]
@@ -514,7 +598,10 @@ mod tests {
                 ),
                 (
                     b"e".to_vec(),
-                    YsonNode { value: YsonValue::SignedInteger(4), attributes: vec![] }
+                    YsonNode {
+                        value: YsonValue::SignedInteger(4),
+                        attributes: vec![]
+                    }
                 ),
             ])
         );
@@ -529,14 +616,20 @@ mod tests {
                 YsonNode {
                     value: YsonValue::Map(vec![(
                         b"a".to_vec(),
-                        YsonNode { value: YsonValue::SignedInteger(1), attributes: vec![] }
+                        YsonNode {
+                            value: YsonValue::SignedInteger(1),
+                            attributes: vec![]
+                        }
                     )]),
                     attributes: vec![]
                 },
                 YsonNode {
                     value: YsonValue::Map(vec![(
                         b"b".to_vec(),
-                        YsonNode { value: YsonValue::SignedInteger(2), attributes: vec![] }
+                        YsonNode {
+                            value: YsonValue::SignedInteger(2),
+                            attributes: vec![]
+                        }
                     )]),
                     attributes: vec![]
                 },
@@ -554,8 +647,14 @@ mod tests {
                     b"a".to_vec(),
                     YsonNode {
                         value: YsonValue::Array(vec![
-                            YsonNode { value: YsonValue::SignedInteger(1), attributes: vec![] },
-                            YsonNode { value: YsonValue::SignedInteger(2), attributes: vec![] },
+                            YsonNode {
+                                value: YsonValue::SignedInteger(1),
+                                attributes: vec![]
+                            },
+                            YsonNode {
+                                value: YsonValue::SignedInteger(2),
+                                attributes: vec![]
+                            },
                         ]),
                         attributes: vec![]
                     }
@@ -564,8 +663,14 @@ mod tests {
                     b"b".to_vec(),
                     YsonNode {
                         value: YsonValue::Array(vec![
-                            YsonNode { value: YsonValue::SignedInteger(3), attributes: vec![] },
-                            YsonNode { value: YsonValue::SignedInteger(4), attributes: vec![] },
+                            YsonNode {
+                                value: YsonValue::SignedInteger(3),
+                                attributes: vec![]
+                            },
+                            YsonNode {
+                                value: YsonValue::SignedInteger(4),
+                                attributes: vec![]
+                            },
                         ]),
                         attributes: vec![]
                     }
