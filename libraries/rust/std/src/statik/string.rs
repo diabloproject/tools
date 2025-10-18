@@ -1,3 +1,5 @@
+use std::hash::Hash;
+
 #[derive(Clone, Copy)]
 pub struct StaticString<const CAPACITY: usize> {
     data: [u8; CAPACITY],
@@ -98,3 +100,17 @@ impl<const CAPACITY: usize> std::str::FromStr for StaticString<CAPACITY> {
         Ok(result)
     }
 }
+
+impl<const CAPACITY: usize> Hash for StaticString<CAPACITY> {
+    fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
+        self.as_str().hash(state);
+    }
+}
+
+impl<const CAPACITY: usize> PartialEq for StaticString<CAPACITY> {
+    fn eq(&self, other: &Self) -> bool {
+        self.as_str() == other.as_str()
+    }
+}
+
+impl<const CAPACITY: usize> Eq for StaticString<CAPACITY> {}

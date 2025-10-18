@@ -5,12 +5,22 @@ pub struct StaticSet<T, const CAPACITY: usize> {
     data: [Option<T>; CAPACITY],
 }
 
-impl<T, const CAPACITY: usize> StaticSet<T, CAPACITY> {
+impl<T: Copy, const CAPACITY: usize> StaticSet<T, CAPACITY> {
     pub const fn new() -> Self {
+        Self {
+            data: [None; CAPACITY],
+        }
+    }
+}
+
+impl<T, const CAPACITY: usize> StaticSet<T, CAPACITY> {
+    pub fn new_iter() -> Self {
         unsafe {
-            Self {
-                data: std::mem::zeroed(),
+            let mut data: [Option<T>; CAPACITY] = std::mem::zeroed();
+            for i in 0..CAPACITY {
+                data[i] = None;
             }
+            Self { data }
         }
     }
 
@@ -84,7 +94,7 @@ where
 
 impl<T, const CAPACITY: usize> Default for StaticSet<T, CAPACITY> {
     fn default() -> Self {
-        Self::new()
+        Self::new_iter()
     }
 }
 
