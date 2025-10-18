@@ -9,13 +9,13 @@ import torchvision.transforms.functional as TF
 import torch.nn.functional as F
 
 BOX_SIZE = 128
-DISTANCE_PER_PIXEL = 0.0000002
-SCAN_TARGET_SIZE = 64 * BOX_SIZE
+DISTANCE_PER_PIXEL = 0.002
+SCAN_TARGET_SIZE = 32 * BOX_SIZE
 GRID_SIZE = SCAN_TARGET_SIZE // BOX_SIZE
 ARROW_MAGNITUDE = 0.5
 ARROW_COLOR = (0, 0, 255)
 ARROW_THICKNESS = 4
-ENVIRONMENT_FACTOR = 0.5
+ENVIRONMENT_FACTOR = 0.1
 
 
 def load_and_preprocess_image(image_path: str) -> Tuple[torch.Tensor, Any]:
@@ -111,36 +111,45 @@ def visualize_gradients(image: torch.Tensor, display_image: Any) -> Any:
 
     dm2 = dm.clone()
 
-    # for row in range(GRID_SIZE - 1):
-    #     for col in range(GRID_SIZE - 1):
-    #         row_indices = torch.arange(GRID_SIZE).unsqueeze(1).expand(-1, GRID_SIZE)
-    #         col_indices = torch.arange(GRID_SIZE).unsqueeze(0).expand(GRID_SIZE, -1)
-    #         row_filter = (row_indices != row)
-    #         col_filter = (col_indices != col)
-    #         cf = row_filter & col_filter
-    #         row_indices = row_indices[row_indices != row].to(torch.float64)
-    #         col_indices = col_indices[col_indices != col].to(torch.float64)
-    #         distances = torch.sqrt((row - row_indices) ** 2 + (col - col_indices) ** 2)
-    #         scale_factor = 1 / ((BOX_SIZE * DISTANCE_PER_PIXEL * distances) ** 3)
-    #         neighbors = dm.clone()
-    #         neighbors[cf, 2] = 0
-    #         neighbors[:, :, 2] *= scale_factor
-    #         neighbors = neighbors.reshape(-1, 3)
-    #         # neighbors = torch.stack(neighbors)  # N x 3
-    #         own_rad = torch.atan2(dm[row, col][1], dm[row, col][0])
-    #         neighbor_rad = torch.atan2(neighbors[:, 1], neighbors[:, 0])
-    #         neighbor_rad = torch.sum(neighbor_rad * neighbors[:, 2]) / torch.sum(neighbors[:, 2])
-    #         total_rad = (own_rad * (1 - ENVIRONMENT_FACTOR) + neighbor_rad * ENVIRONMENT_FACTOR)
-    #         dm2[row, col, :2] = torch.tensor([torch.cos(total_rad), torch.sin(total_rad)])
-    #         # dm2[row, col, 2:] = neighbors[:, 2:].mean(dim=0)
+    k = torch.tensor([0., 0., 1.])
+    for i in range(1000):
+        dm = dm2.clone()
+        dm2 = dm.clone()
+        for row in range(GRID_SIZE - 1):
+            for col in range(GRID_SIZE - 1):
+                row_indices = torch.arange(GRID_SIZE).unsqueeze(1).expand(-1, GRID_SIZE)
+                col_indices = torch.arange(GRID_SIZE).unsqueeze(0).expand(GRID_SIZE, -1)
 
-    for row in range(GRID_SIZE - 1):
-        for col in range(GRID_SIZE - 1):
-            x, y, m = dm2[row, col].tolist()
-            direction = torch.tensor([x, y])
-            magnitude = torch.tensor(m)
-            start_point, end_point = calculate_arrow_endpoints(direction, magnitude, col, row)
-            cv2.arrowedLine(display_image, start_point, end_point, ARROW_COLOR, ARROW_THICKNESS)
+                vectors = torch.stack([row_indices, col_indices, torch.zeros_like(row_indices)], dim=2).to(torch.float)
+                directions = vectors / vectors.norm(dim=2, keepdim=True)
+                directions[directions.isnan()] = 0.
+
+                neighbor_rad = torch.atan2(dm[:, :, 0], dm[:, :, 1])
+                neighbor_rad = torch.stack([neighbor_rad, neighbor_rad, neighbor_rad], dim=2)
+                own_rad = torch.atan2(dm[row, col][0], dm[row, col][1])
+                own_rad = torch.tensor([own_rad, own_rad, own_rad])
+                scaling = neighbor_rad / own_rad
+                scaling = scaling * k
+
+                ri_n = torch.cross(directions, scaling, dim=2)
+
+                fi = dm[:, :, 2] / (vectors.norm(dim=2)) ** 3
+                fi[fi == torch.inf] = 0
+                fit = torch.stack([fi, fi, fi], dim=2)
+                r_n = (ri_n * fit).reshape(-1, 3).sum(dim=0) / fi.sum()
+
+                dm2[row, col, :2] = (r_n[:2] * ENVIRONMENT_FACTOR / dm[row, col, 2]) + dm[row, col, :2]
+
+        ndi = display_image.copy()
+        for row in range(GRID_SIZE - 1):
+            for col in range(GRID_SIZE - 1):
+                x, y, m = dm2[row, col].tolist()
+                direction = torch.tensor([x, y])
+                magnitude = torch.tensor(m)
+                start_point, end_point = calculate_arrow_endpoints(direction, magnitude, col, row)
+                cv2.arrowedLine(ndi, start_point, end_point, ARROW_COLOR, ARROW_THICKNESS)
+        cv2.imshow("Image", ndi)
+        cv2.waitKey(1)
 
     return display_image
 
