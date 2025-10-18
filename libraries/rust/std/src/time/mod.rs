@@ -3,12 +3,9 @@ use std::time::{SystemTime, UNIX_EPOCH};
 
 pub struct DateTime(i64);
 
-
 impl DateTime {
     pub fn now() -> Self {
-        let since_epoch = SystemTime::now()
-            .duration_since(UNIX_EPOCH)
-            .unwrap();
+        let since_epoch = SystemTime::now().duration_since(UNIX_EPOCH).unwrap();
         DateTime(since_epoch.as_millis() as i64)
     }
 
@@ -16,18 +13,38 @@ impl DateTime {
         DateTime(millis)
     }
 
-    pub fn from_components(year: i64, month: i64, day: i64,
-                           hours: i64, minutes: i64, seconds: i64, millis: i64) -> Result<Self, DateParseError> {
+    pub fn from_components(
+        year: i64,
+        month: i64,
+        day: i64,
+        hours: i64,
+        minutes: i64,
+        seconds: i64,
+        millis: i64,
+    ) -> Result<Self, DateParseError> {
         // Basic validation
-        if month < 1 || month > 12 || day < 1 || day > 31 ||
-            hours > 23 || minutes > 59 || seconds > 59 || millis > 999 {
+        if month < 1
+            || month > 12
+            || day < 1
+            || day > 31
+            || hours > 23
+            || minutes > 59
+            || seconds > 59
+            || millis > 999
+        {
             return Err(DateParseError);
         }
 
         let days_in_month = match month {
             4 | 6 | 9 | 11 => 30,
-            2 => if year % 4 == 0 && (year % 100 != 0 || year % 400 == 0) { 29 } else { 28 },
-            _ => 31
+            2 => {
+                if year % 4 == 0 && (year % 100 != 0 || year % 400 == 0) {
+                    29
+                } else {
+                    28
+                }
+            }
+            _ => 31,
         };
 
         if day > days_in_month {
@@ -63,16 +80,16 @@ impl DateTime {
             10 => 273,
             11 => 304,
             12 => 334,
-            _ => 0
+            _ => 0,
         };
 
         days += days_before_month + day - 1;
 
-        let total_millis = days * 24 * 60 * 60 * 1000 +
-            hours * 60 * 60 * 1000 +
-            minutes * 60 * 1000 +
-            seconds * 1000 +
-            millis;
+        let total_millis = days * 24 * 60 * 60 * 1000
+            + hours * 60 * 60 * 1000
+            + minutes * 60 * 1000
+            + seconds * 1000
+            + millis;
         Ok(DateTime(total_millis))
     }
 }
@@ -181,8 +198,24 @@ impl std::fmt::Display for DateTime {
         }
 
         // Calculate month from remaining days
-        let month_days = [31, if year % 4 == 0 && (year % 100 != 0 || year % 400 == 0) { 29 } else { 28 },
-            31, 30, 31, 30, 31, 31, 30, 31, 30, 31];
+        let month_days = [
+            31,
+            if year % 4 == 0 && (year % 100 != 0 || year % 400 == 0) {
+                29
+            } else {
+                28
+            },
+            31,
+            30,
+            31,
+            30,
+            31,
+            31,
+            30,
+            31,
+            30,
+            31,
+        ];
         let mut month = 1;
         for days in month_days.iter() {
             if days_remaining < *days {
@@ -204,8 +237,11 @@ impl std::fmt::Display for DateTime {
         let seconds = millis_in_day / 1000;
         let millis = millis_in_day % 1000;
 
-        write!(f, "{:04}-{:02}-{:02}T{:02}:{:02}:{:02}.{:03}Z",
-               year, month, day, hours, minutes, seconds, millis)
+        write!(
+            f,
+            "{:04}-{:02}-{:02}T{:02}:{:02}:{:02}.{:03}Z",
+            year, month, day, hours, minutes, seconds, millis
+        )
     }
 }
 
@@ -242,6 +278,3 @@ mod tests {
         assert!("2024-01-01T00:00:60.000Z".parse::<DateTime>().is_err());
     }
 }
-
-
-
