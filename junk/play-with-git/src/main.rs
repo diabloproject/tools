@@ -1,7 +1,8 @@
-use diabloproject::log::{LogLevel, log};
+use diabloproject::log::{LogLevel, ProgressBar, log};
 use git2::build::RepoBuilder;
-use git2::{Cred, FetchOptions, Progress, RemoteCallbacks, Repository};
+use git2::{FetchOptions, Progress, RemoteCallbacks};
 use std::path::Path;
+use std::sync::{Arc, Mutex};
 
 const REPO_URL: &str = "https://github.com/diabloproject/tools";
 
@@ -33,35 +34,36 @@ fn main() {
     let target = random_alphanumeric_string(16);
     let target = cache_dir.join(target);
 
-    // Repository::clone(REPO_URL, &target).unwrap();
+    log(
+        LogLevel::Info,
+        format!("Cloning {} to {:?}", REPO_URL, target),
+    );
 
+    let progress_bar: Arc<Mutex<Option<ProgressBar>>> = Arc::new(Mutex::new(None));
+    let progress_bar_clone = progress_bar.clone();
     let mut cb = RemoteCallbacks::new();
 
-    cb.transfer_progress(|stats: Progress| {
-        let received = stats.received_objects();
+    cb.transfer_progress(move |stats: Progress| {
         let total = stats.total_objects();
+        let received = stats.received_objects();
         let indexed = stats.indexed_objects();
+        let bytes = stats.received_bytes();
 
-        log(
-            LogLevel::Info,
-            format!(
-                "Received {}/{} objects ({} indexed)",
-                received, total, indexed
-            ),
-        );
+        log(LogLevel::Trace, format!("Total objects: {}, Received: {}, Indexed: {}, Bytes: {}", total, received, indexed, bytes));
 
-        if stats.received_objects() == stats.total_objects() {
-            log(
-                LogLevel::Info,
-                format!(
-                    "Resolving deltas {}/{}",
-                    stats.indexed_deltas(),
-                    stats.total_deltas()
-                ),
-            );
+        if total > 0 {
+            let mut pb = progress_bar_clone.lock().unwrap();
+            if pb.is_none() {
+                *pb = Some(ProgressBar::new("Receiving objects", total as u64));
+                log(LogLevel::Trace, "Created progress bar for git clone operation");
+            }
+
+            if let Some(ref bar) = *pb {
+                bar.push(received as u64);
+            }
         }
 
-        true // return false to abort
+        true
     });
 
     let mut fo = FetchOptions::new();
@@ -70,7 +72,8 @@ fn main() {
     let mut builder = RepoBuilder::new();
     builder.fetch_options(fo);
 
-    builder.clone(REPO_URL, &target).unwrap();
-
-    log(LogLevel::Info, format!("Cloned to: {:?}", target));
+    match builder.clone(REPO_URL, &target) {
+        Ok(_) => log(LogLevel::Info, format!("Successfully cloned to: {:?}", target)),
+        Err(e) => log(LogLevel::Error, format!("Failed to clone repository: {}", e)),
+    }
 }

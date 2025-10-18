@@ -5,3 +5,4 @@ edition = "2024"
 
 [dependencies]
 stdd = { workspace = true }
+terminal-size = { workspace = true }
