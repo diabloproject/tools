@@ -1,11 +1,15 @@
 [workspace]
 members = [
-    "d", "junk/dlog-showcase", "junk/play-with-git",
+    "d",
+    "junk/dlog-showcase",
+    "junk/play-with-git",
     "libraries/rust/cmd",
     "libraries/rust/describe-project",
     "libraries/rust/diabloproject",
-    "libraries/rust/dlog", "libraries/rust/metaobject",
-    "libraries/rust/std", "libraries/rust/terminal-size",
+    "libraries/rust/dlog",
+    "libraries/rust/metaobject",
+    "libraries/rust/std",
+    "libraries/rust/terminal-size",
     "libraries/rust/yson"
 ]
 resolver = "3"
