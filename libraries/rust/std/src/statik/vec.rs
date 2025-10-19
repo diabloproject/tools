@@ -155,6 +155,7 @@ impl<T: Copy, const CAPACITY: usize> const TryFrom<&[T]> for StaticVec<T, CAPACI
 
         let mut vec = Self::new();
         let mut idx = 0;
+        // For loop is not const, so we have to use a while loop
         while idx < slice.len() {
             vec.push(slice[idx]);
             idx += 1;
