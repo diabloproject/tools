@@ -14,11 +14,11 @@ impl<const CAPACITY: usize> StaticString<CAPACITY> {
         }
     }
 
-    pub fn len(&self) -> usize {
+    pub const fn len(&self) -> usize {
         self.len
     }
 
-    pub fn is_empty(&self) -> bool {
+    pub const fn is_empty(&self) -> bool {
         self.len == 0
     }
 
@@ -26,11 +26,11 @@ impl<const CAPACITY: usize> StaticString<CAPACITY> {
         CAPACITY
     }
 
-    pub fn clear(&mut self) {
+    pub const fn clear(&mut self) {
         self.len = 0;
     }
 
-    pub fn push_str(&mut self, s: &str) -> bool {
+    pub const fn push_str(&mut self, s: &str) -> bool {
         let bytes = s.as_bytes();
         if self.len + bytes.len() > CAPACITY {
             return false;
@@ -40,11 +40,11 @@ impl<const CAPACITY: usize> StaticString<CAPACITY> {
         true
     }
 
-    pub fn as_str(&self) -> &str {
+    pub const fn as_str(&self) -> &str {
         unsafe { std::str::from_utf8_unchecked(&self.data[..self.len]) }
     }
 
-    pub fn as_mut_str(&mut self) -> &mut str {
+    pub const fn as_mut_str(&mut self) -> &mut str {
         unsafe { std::str::from_utf8_unchecked_mut(&mut self.data[..self.len]) }
     }
 }
@@ -71,7 +71,7 @@ impl<const CAPACITY: usize> std::fmt::Display for StaticString<CAPACITY> {
     }
 }
 
-impl<const CAPACITY: usize> std::ops::Deref for StaticString<CAPACITY> {
+impl<const CAPACITY: usize> const std::ops::Deref for StaticString<CAPACITY> {
     type Target = str;
 
     fn deref(&self) -> &Self::Target {
@@ -79,7 +79,7 @@ impl<const CAPACITY: usize> std::ops::Deref for StaticString<CAPACITY> {
     }
 }
 
-impl<const CAPACITY: usize> std::ops::DerefMut for StaticString<CAPACITY> {
+impl<const CAPACITY: usize> const std::ops::DerefMut for StaticString<CAPACITY> {
     fn deref_mut(&mut self) -> &mut Self::Target {
         self.as_mut_str()
     }
@@ -102,7 +102,7 @@ impl std::fmt::Display for StaticStringConversionError {
 
 impl std::error::Error for StaticStringConversionError {}
 
-impl<const CAPACITY: usize> std::str::FromStr for StaticString<CAPACITY> {
+impl<const CAPACITY: usize> const std::str::FromStr for StaticString<CAPACITY> {
     type Err = StaticStringConversionError;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
@@ -120,10 +120,10 @@ impl<const CAPACITY: usize> Hash for StaticString<CAPACITY> {
     }
 }
 
-impl<const CAPACITY: usize> PartialEq for StaticString<CAPACITY> {
+impl<const CAPACITY: usize> const PartialEq for StaticString<CAPACITY> {
     fn eq(&self, other: &Self) -> bool {
         self.as_str() == other.as_str()
     }
 }
 
-impl<const CAPACITY: usize> Eq for StaticString<CAPACITY> {}
+impl<const CAPACITY: usize> const Eq for StaticString<CAPACITY> {}
