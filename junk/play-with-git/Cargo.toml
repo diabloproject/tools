@@ -1,0 +1,8 @@
+[package]
+name = "play-with-git"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+git2 = "0.20.2"
+diabloproject = { workspace = true, features = ["log"] }

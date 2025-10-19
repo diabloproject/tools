@@ -1,0 +1,8 @@
+[package]
+name = "dlog"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+stdd = { workspace = true }
+terminal-size = { workspace = true }
