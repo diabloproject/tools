@@ -114,7 +114,9 @@ fn log_thread(rx: std::sync::mpsc::Receiver<LogEvent>) {
     let (forward_tx, forward_rx) = std::sync::mpsc::channel();
     let pipe_addr = pipe::start_pipe_listener(forward_tx);
     if let Ok(addr) = &pipe_addr {
-        std::env::set_var("DLOG_PIPE", addr);
+        unsafe {
+            std::env::set_var("DLOG_PIPE", addr);
+        }
     }
 
     let use_progress = std::env::var("DLOG_NO_PROGRESS").unwrap_or_else(|_| "FALSE".to_string());
