@@ -41,13 +41,8 @@ impl<K: Copy, V: Copy, const CAPACITY: usize> StaticHashMap<K, V, CAPACITY> {
 
 impl<K, V, const CAPACITY: usize> StaticHashMap<K, V, CAPACITY> {
     pub fn new_iter() -> Self {
-        unsafe {
-            let mut data: [Option<(K, V)>; CAPACITY] = std::mem::zeroed();
-            for i in 0..CAPACITY {
-                data[i] = None;
-            }
-            Self { data }
-        }
+        let data: [Option<(K, V)>; CAPACITY] = std::array::from_fn(|_| None);
+        Self { data }
     }
 
     pub fn len(&self) -> usize {
