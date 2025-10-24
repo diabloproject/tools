@@ -92,6 +92,14 @@ dependencies = [
 ]
 
 [[package]]
+name = "eshell-test"
+version = "0.1.0"
+dependencies = [
+ "terminal-size",
+ "tui-elements",
+]
+
+[[package]]
 name = "find-msvc-tools"
 version = "0.1.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -493,6 +501,10 @@ dependencies = [
  "displaydoc",
  "zerovec",
 ]
+
+[[package]]
+name = "tui-elements"
+version = "0.1.0"
 
 [[package]]
 name = "unicode-ident"

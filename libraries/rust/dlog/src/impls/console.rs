@@ -34,7 +34,7 @@ impl ConsoleLogWriter {
             width = size.0.0 as usize;
         }
         let bar_width = width.saturating_sub(description.len().min(40) + 12);
-        let progress = value as f64 / total as f64;
+        let progress = value as f64 / (total.max(value)) as f64;
         let filled_width = (bar_width as f64 * progress) as usize;
         let empty_width = bar_width.saturating_sub(filled_width);
 

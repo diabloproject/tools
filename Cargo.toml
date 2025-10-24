@@ -1,7 +1,7 @@
 [workspace]
 members = [
     "d",
-    "junk/dlog-showcase",
+    "junk/dlog-showcase", "junk/eshell-test",
     "junk/play-with-git",
     "libraries/rust/cmd",
     "libraries/rust/describe-project",
@@ -10,6 +10,7 @@ members = [
     "libraries/rust/metaobject",
     "libraries/rust/std",
     "libraries/rust/terminal-size",
+    "libraries/rust/tui-elements",
     "libraries/rust/yson"
 ]
 resolver = "3"
@@ -22,3 +23,4 @@ describe-project = { path = "libraries/rust/describe-project" }
 diabloproject = { path = "libraries/rust/diabloproject", default-features = false }
 dlog = { path = "libraries/rust/dlog" }
 terminal-size = { path = "libraries/rust/terminal-size" }
+tui-elements = { path = "libraries/rust/tui-elements" }
