@@ -16,23 +16,11 @@ impl SimpleLogWriter {
 
 impl SimpleLogWriter {
     fn display_log_record(&self, record: &LogRecord) {
-        self.set_color(match record.level {
-            LogLevel::Trace => "37",
-            LogLevel::Debug => "36",
-            LogLevel::Info => "32",
-            LogLevel::Warn => "33",
-            LogLevel::Error => "31",
-            LogLevel::Fatal => "35",
-        });
         println!(
-            "[{} {}]\x1b[0m {}",
+            "[{} {}] {}",
             record.level, record.timestamp, &record.message
         );
         std::io::stdout().flush().ok();
-    }
-
-    fn set_color(&self, color: &str) {
-        print!("\x1b[{}m", color);
     }
 }
 
