@@ -59,7 +59,7 @@ fn logging_worker(id: String, row: ReplayRow) {
     let server_uri =
         std::env::var("SPECTRE_API_URI").unwrap_or_else(|_| "http://localhost:3000/".to_string());
     let client = Client::new();
-    let response = client
+    let _response = client
         .post(format!("{}/append/{}", server_uri.trim_suffix('/'), &id))
         .body(
             Replay {
