@@ -107,7 +107,9 @@ impl<'src> Parser<'src> {
             return Ok(None);
         }
 
-        if let Some(block) = self.parse_event_block()? { return Ok(Some(block)) }
+        if let Some(block) = self.parse_event_block()? {
+            return Ok(Some(block));
+        }
 
         Ok(None) // TODO: Implement other block types
     }
@@ -148,7 +150,9 @@ impl<'src> Parser<'src> {
                 let mut content_end = self.pos;
                 loop {
                     let old_pod = self.pos;
-                    if let Ok(_) = self.consume_string("EOF") { break };
+                    if let Ok(_) = self.consume_string("EOF") {
+                        break;
+                    };
                     self.pos = old_pod;
 
                     loop {

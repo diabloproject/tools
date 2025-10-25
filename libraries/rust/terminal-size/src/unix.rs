@@ -6,7 +6,9 @@ pub fn terminal_size() -> Option<(Width, Height)> {
         Some(size)
     } else if let Some(size) = terminal_size_of(std::io::stderr()) {
         Some(size)
-    } else { terminal_size_of(std::io::stdin()).map(|size| size) }
+    } else {
+        terminal_size_of(std::io::stdin()).map(|size| size)
+    }
 }
 
 pub fn terminal_size_of<Fd: AsFd>(fd: Fd) -> Option<(Width, Height)> {

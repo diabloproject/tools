@@ -663,17 +663,13 @@ pub mod sequences {
 
         pub fn enable_alternative_buffer() {
             stdout()
-                .write_all(&[
-                    ESC, CSI, b'?', b'1', b'0', b'4', b'9', b'h',
-                ])
+                .write_all(&[ESC, CSI, b'?', b'1', b'0', b'4', b'9', b'h'])
                 .expect("failed to write to stdout");
         }
 
         pub fn disable_alternative_buffer() {
             stdout()
-                .write_all(&[
-                    ESC, CSI, b'?', b'1', b'0', b'4', b'9', b'l',
-                ])
+                .write_all(&[ESC, CSI, b'?', b'1', b'0', b'4', b'9', b'l'])
                 .expect("failed to write to stdout");
         }
     }

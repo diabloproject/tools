@@ -187,9 +187,10 @@ fn log_thread(rx: std::sync::mpsc::Receiver<LogEvent>) {
 
 static LOG_SOCKET: LazyLock<LogSink> = LazyLock::new(|| {
     if let Ok(pipe_addr) = std::env::var("DLOG_PIPE")
-        && let Ok(stream) = TcpStream::connect(&pipe_addr) {
-            return LogSink::Remote(std::sync::Mutex::new(stream));
-        }
+        && let Ok(stream) = TcpStream::connect(&pipe_addr)
+    {
+        return LogSink::Remote(std::sync::Mutex::new(stream));
+    }
 
     let (tx, rx) = std::sync::mpsc::channel();
     std::thread::spawn(move || log_thread(rx));
