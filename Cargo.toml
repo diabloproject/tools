@@ -1,17 +1,22 @@
 [workspace]
 members = [
     "d",
-    "junk/dlog-showcase", "junk/eshell-test",
+    "junk/dlog-showcase",
+    "junk/eshell-test",
     "junk/play-with-git",
     "libraries/rust/cmd",
+    "libraries/rust/dsv",
     "libraries/rust/describe-project",
     "libraries/rust/diabloproject",
     "libraries/rust/dlog",
     "libraries/rust/metaobject",
+    "libraries/rust/replay",
     "libraries/rust/std",
     "libraries/rust/terminal-size",
     "libraries/rust/tui-elements",
-    "libraries/rust/yson"
+    "libraries/rust/yson",
+    "spectre/spectre-api",
+    "spectre/spectre-cli"
 ]
 resolver = "3"
 
@@ -24,3 +29,5 @@ diabloproject = { path = "libraries/rust/diabloproject", default-features = fals
 dlog = { path = "libraries/rust/dlog" }
 terminal-size = { path = "libraries/rust/terminal-size" }
 tui-elements = { path = "libraries/rust/tui-elements" }
+dsv = { path = "libraries/rust/dsv" }
+replay = { path = "libraries/rust/replay" }

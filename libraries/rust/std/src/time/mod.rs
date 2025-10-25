@@ -92,6 +92,9 @@ impl DateTime {
             + millis;
         Ok(DateTime(total_millis))
     }
+    pub fn to_millis(&self) -> i64 {
+        self.0
+    }
 }
 
 #[derive(Debug, Clone, Copy)]
