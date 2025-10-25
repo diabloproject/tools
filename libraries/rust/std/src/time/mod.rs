@@ -23,10 +23,8 @@ impl DateTime {
         millis: i64,
     ) -> Result<Self, DateParseError> {
         // Basic validation
-        if month < 1
-            || month > 12
-            || day < 1
-            || day > 31
+        if !(1..=12).contains(&month)
+            || !(1..=31).contains(&day)
             || hours > 23
             || minutes > 59
             || seconds > 59

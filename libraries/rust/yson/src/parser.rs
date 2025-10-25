@@ -101,7 +101,7 @@ impl<E: Error, R: Iterator<Item = Result<YsonToken, E>>> YsonParser<E, R> {
                             }
                             let value = self.parse_complete()?;
                             let next = eof_guard!(self.lexer.peek());
-                            let _ = match next {
+                            match next {
                                 Err(_) | Ok(YsonToken::Semicolon) => {
                                     eof_guard!(self.lexer.next())?;
                                 }

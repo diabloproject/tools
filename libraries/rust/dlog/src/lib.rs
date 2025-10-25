@@ -120,14 +120,10 @@ fn log_thread(rx: std::sync::mpsc::Receiver<LogEvent>) {
     }
 
     let use_progress = std::env::var("DLOG_NO_PROGRESS").unwrap_or_else(|_| "FALSE".to_string());
-    let use_progress = !if use_progress.to_ascii_lowercase() == "true" {
-        true
-    } else {
-        false
-    };
+    let use_progress = !use_progress.eq_ignore_ascii_case("true");
 
     let use_simple = std::env::var("DLOG_SIMPLE").unwrap_or_else(|_| "FALSE".to_string());
-    let use_simple = use_simple.to_ascii_lowercase() == "true";
+    let use_simple = use_simple.eq_ignore_ascii_case("true");
 
     let mut writer: Box<dyn LogWriter> = if use_simple {
         Box::new(SimpleLogWriter::new())
@@ -190,11 +186,10 @@ fn log_thread(rx: std::sync::mpsc::Receiver<LogEvent>) {
 }
 
 static LOG_SOCKET: LazyLock<LogSink> = LazyLock::new(|| {
-    if let Ok(pipe_addr) = std::env::var("DLOG_PIPE") {
-        if let Ok(stream) = TcpStream::connect(&pipe_addr) {
+    if let Ok(pipe_addr) = std::env::var("DLOG_PIPE")
+        && let Ok(stream) = TcpStream::connect(&pipe_addr) {
             return LogSink::Remote(std::sync::Mutex::new(stream));
         }
-    }
 
     let (tx, rx) = std::sync::mpsc::channel();
     std::thread::spawn(move || log_thread(rx));

@@ -8,7 +8,7 @@ pub enum Mode {
     // No indents, but prefer textual representations
     Compact,
     // Prefer binary representations
-    Binary
+    Binary,
 }
 
 pub fn serialize(input: &YsonNode, mode: Mode) -> Vec<u8> {
@@ -33,7 +33,7 @@ fn serialize_node(node: &YsonNode, mode: &Mode, output: &mut Vec<u8>, indent_lev
         }
         output.push(b'>');
     }
-    
+
     serialize_value(&node.value, mode, output, indent_level);
 }
 
@@ -87,7 +87,7 @@ fn serialize_string(s: &YsonString, mode: &Mode, output: &mut Vec<u8>) {
         let can_be_identifier = !s.is_empty()
             && (s[0].is_ascii_alphabetic() || s[0] == b'_')
             && s.iter().all(|&b| b.is_ascii_alphanumeric() || b == b'_');
-        
+
         if can_be_identifier {
             output.extend_from_slice(s);
         } else {
@@ -106,51 +106,56 @@ fn serialize_string(s: &YsonString, mode: &Mode, output: &mut Vec<u8>) {
 
 fn serialize_array(arr: &[YsonNode], mode: &Mode, output: &mut Vec<u8>, indent_level: usize) {
     output.push(b'[');
-    
+
     for (i, node) in arr.iter().enumerate() {
         if i > 0 {
             output.push(b';');
         }
-        
+
         if matches!(mode, Mode::Pretty) {
             output.push(b'\n');
             output.extend_from_slice(&vec![b' '; (indent_level + 1) * 4]);
         }
-        
+
         serialize_node(node, mode, output, indent_level + 1);
     }
-    
+
     if matches!(mode, Mode::Pretty) && !arr.is_empty() {
         output.push(b'\n');
         output.extend_from_slice(&vec![b' '; indent_level * 4]);
     }
-    
+
     output.push(b']');
 }
 
-fn serialize_map(map: &[(YsonString, YsonNode)], mode: &Mode, output: &mut Vec<u8>, indent_level: usize) {
+fn serialize_map(
+    map: &[(YsonString, YsonNode)],
+    mode: &Mode,
+    output: &mut Vec<u8>,
+    indent_level: usize,
+) {
     output.push(b'{');
-    
+
     for (i, (key, value)) in map.iter().enumerate() {
         if i > 0 {
             output.push(b';');
         }
-        
+
         if matches!(mode, Mode::Pretty) {
             output.push(b'\n');
             output.extend_from_slice(&vec![b' '; (indent_level + 1) * 4]);
         }
-        
+
         serialize_string(key, mode, output);
         output.push(b'=');
         serialize_node(value, mode, output, indent_level + 1);
     }
-    
+
     if matches!(mode, Mode::Pretty) && !map.is_empty() {
         output.push(b'\n');
         output.extend_from_slice(&vec![b' '; indent_level * 4]);
     }
-    
+
     output.push(b'}');
 }
 
@@ -164,13 +169,18 @@ mod tests {
         let lexer = YsonLexer::new(input.bytes().map(Ok::<u8, std::convert::Infallible>));
         let mut parser = YsonParser::new(lexer);
         let node = parser.parse_complete().unwrap();
-        
+
         let serialized = serialize(&node, mode);
-        
-        let lexer2 = YsonLexer::new(serialized.iter().copied().map(Ok::<u8, std::convert::Infallible>));
+
+        let lexer2 = YsonLexer::new(
+            serialized
+                .iter()
+                .copied()
+                .map(Ok::<u8, std::convert::Infallible>),
+        );
         let mut parser2 = YsonParser::new(lexer2);
         let node2 = parser2.parse_complete().unwrap();
-        
+
         assert_eq!(node, node2, "Round trip failed for input: {}", input);
     }
 
@@ -190,7 +200,7 @@ mod tests {
             attributes: vec![],
         };
         assert_eq!(serialize(&node, Mode::Compact), b"%true");
-        
+
         let node = YsonNode {
             value: YsonValue::Boolean(false),
             attributes: vec![],
@@ -320,15 +330,13 @@ mod tests {
     fn test_serialize_with_attributes() {
         let node = YsonNode {
             value: YsonValue::SignedInteger(42),
-            attributes: vec![
-                (
-                    b"foo".to_vec(),
-                    YsonNode {
-                        value: YsonValue::String(b"bar".to_vec()),
-                        attributes: vec![],
-                    },
-                ),
-            ],
+            attributes: vec![(
+                b"foo".to_vec(),
+                YsonNode {
+                    value: YsonValue::String(b"bar".to_vec()),
+                    attributes: vec![],
+                },
+            )],
         };
         assert_eq!(serialize(&node, Mode::Compact), b"<foo=bar>42");
     }
@@ -340,7 +348,7 @@ mod tests {
             attributes: vec![],
         };
         assert_eq!(serialize(&node, Mode::Binary), vec![0x04]);
-        
+
         let node = YsonNode {
             value: YsonValue::Boolean(false),
             attributes: vec![],
@@ -461,7 +469,7 @@ mod tests {
         };
         let result = serialize(&node, Mode::Binary);
         assert_eq!(result[0], 0x02); // SignedInteger marker
-        
+
         let node = YsonNode {
             value: YsonValue::UnsignedInteger(456),
             attributes: vec![],
@@ -515,20 +523,16 @@ mod tests {
     #[test]
     fn test_nested_pretty_mode() {
         let node = YsonNode {
-            value: YsonValue::Array(vec![
-                YsonNode {
-                    value: YsonValue::Map(vec![
-                        (
-                            b"x".to_vec(),
-                            YsonNode {
-                                value: YsonValue::SignedInteger(1),
-                                attributes: vec![],
-                            },
-                        ),
-                    ]),
-                    attributes: vec![],
-                },
-            ]),
+            value: YsonValue::Array(vec![YsonNode {
+                value: YsonValue::Map(vec![(
+                    b"x".to_vec(),
+                    YsonNode {
+                        value: YsonValue::SignedInteger(1),
+                        attributes: vec![],
+                    },
+                )]),
+                attributes: vec![],
+            }]),
             attributes: vec![],
         };
         let result = serialize(&node, Mode::Pretty);
@@ -602,7 +606,10 @@ mod tests {
             value: YsonValue::String(b"test".to_vec()),
             attributes: vec![],
         };
-        assert_eq!(serialize(&node, Mode::Binary), vec![0x01, 0x04, b't', b'e', b's', b't']);
+        assert_eq!(
+            serialize(&node, Mode::Binary),
+            vec![0x01, 0x04, b't', b'e', b's', b't']
+        );
     }
 
     #[test]
@@ -627,15 +634,13 @@ mod tests {
     #[test]
     fn test_binary_map_structure() {
         let node = YsonNode {
-            value: YsonValue::Map(vec![
-                (
-                    b"x".to_vec(),
-                    YsonNode {
-                        value: YsonValue::SignedInteger(10),
-                        attributes: vec![],
-                    },
-                ),
-            ]),
+            value: YsonValue::Map(vec![(
+                b"x".to_vec(),
+                YsonNode {
+                    value: YsonValue::SignedInteger(10),
+                    attributes: vec![],
+                },
+            )]),
             attributes: vec![],
         };
         let result = serialize(&node, Mode::Binary);
@@ -646,35 +651,31 @@ mod tests {
     #[test]
     fn test_compact_complex_nested() {
         let node = YsonNode {
-            value: YsonValue::Map(vec![
-                (
-                    b"users".to_vec(),
-                    YsonNode {
-                        value: YsonValue::Array(vec![
-                            YsonNode {
-                                value: YsonValue::Map(vec![
-                                    (
-                                        b"name".to_vec(),
-                                        YsonNode {
-                                            value: YsonValue::String(b"Alice".to_vec()),
-                                            attributes: vec![],
-                                        },
-                                    ),
-                                    (
-                                        b"age".to_vec(),
-                                        YsonNode {
-                                            value: YsonValue::SignedInteger(30),
-                                            attributes: vec![],
-                                        },
-                                    ),
-                                ]),
-                                attributes: vec![],
-                            },
+            value: YsonValue::Map(vec![(
+                b"users".to_vec(),
+                YsonNode {
+                    value: YsonValue::Array(vec![YsonNode {
+                        value: YsonValue::Map(vec![
+                            (
+                                b"name".to_vec(),
+                                YsonNode {
+                                    value: YsonValue::String(b"Alice".to_vec()),
+                                    attributes: vec![],
+                                },
+                            ),
+                            (
+                                b"age".to_vec(),
+                                YsonNode {
+                                    value: YsonValue::SignedInteger(30),
+                                    attributes: vec![],
+                                },
+                            ),
                         ]),
                         attributes: vec![],
-                    },
-                ),
-            ]),
+                    }]),
+                    attributes: vec![],
+                },
+            )]),
             attributes: vec![],
         };
         let result = serialize(&node, Mode::Compact);
@@ -688,27 +689,23 @@ mod tests {
             value: YsonValue::Array(vec![
                 YsonNode {
                     value: YsonValue::SignedInteger(1),
-                    attributes: vec![
-                        (
-                            b"id".to_vec(),
-                            YsonNode {
-                                value: YsonValue::String(b"a".to_vec()),
-                                attributes: vec![],
-                            },
-                        ),
-                    ],
+                    attributes: vec![(
+                        b"id".to_vec(),
+                        YsonNode {
+                            value: YsonValue::String(b"a".to_vec()),
+                            attributes: vec![],
+                        },
+                    )],
                 },
                 YsonNode {
                     value: YsonValue::SignedInteger(2),
-                    attributes: vec![
-                        (
-                            b"id".to_vec(),
-                            YsonNode {
-                                value: YsonValue::String(b"b".to_vec()),
-                                attributes: vec![],
-                            },
-                        ),
-                    ],
+                    attributes: vec![(
+                        b"id".to_vec(),
+                        YsonNode {
+                            value: YsonValue::String(b"b".to_vec()),
+                            attributes: vec![],
+                        },
+                    )],
                 },
             ]),
             attributes: vec![],
@@ -721,28 +718,22 @@ mod tests {
     #[test]
     fn test_pretty_deeply_nested() {
         let node = YsonNode {
-            value: YsonValue::Map(vec![
-                (
-                    b"data".to_vec(),
-                    YsonNode {
-                        value: YsonValue::Array(vec![
+            value: YsonValue::Map(vec![(
+                b"data".to_vec(),
+                YsonNode {
+                    value: YsonValue::Array(vec![YsonNode {
+                        value: YsonValue::Map(vec![(
+                            b"x".to_vec(),
                             YsonNode {
-                                value: YsonValue::Map(vec![
-                                    (
-                                        b"x".to_vec(),
-                                        YsonNode {
-                                            value: YsonValue::SignedInteger(1),
-                                            attributes: vec![],
-                                        },
-                                    ),
-                                ]),
+                                value: YsonValue::SignedInteger(1),
                                 attributes: vec![],
                             },
-                        ]),
+                        )]),
                         attributes: vec![],
-                    },
-                ),
-            ]),
+                    }]),
+                    attributes: vec![],
+                },
+            )]),
             attributes: vec![],
         };
         let result = serialize(&node, Mode::Pretty);
@@ -825,10 +816,10 @@ mod tests {
                 ),
             ],
         };
-        
+
         let result_compact = serialize(&node, Mode::Compact);
         assert_eq!(result_compact, b"<a=1;b=2;c=3>#");
-        
+
         let result_pretty = serialize(&node, Mode::Pretty);
         assert_eq!(result_pretty, b"<a=1; b=2; c=3>#");
     }

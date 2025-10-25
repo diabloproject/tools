@@ -126,12 +126,8 @@ where
             }
         }
         if let Some(idx) = found {
-            if let Some(slot) = self.data.get_mut(idx) {
-                if let Some((_, v)) = slot {
-                    Some(v)
-                } else {
-                    None
-                }
+            if let Some(Some((_, v))) = self.data.get_mut(idx) {
+                Some(v)
             } else {
                 None
             }

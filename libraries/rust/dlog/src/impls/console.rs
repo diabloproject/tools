@@ -131,7 +131,7 @@ impl ConsoleLogWriter {
     fn append_line(&mut self) {
         self.move_cursor_to_default_position();
         self.move_cursor_to_line_start();
-        print!("\n");
+        println!();
         std::io::stdout().flush().ok();
         self.lines_written += 1;
     }

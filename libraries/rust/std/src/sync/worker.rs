@@ -1,4 +1,4 @@
-use std::sync::mpsc::{self, Sender, Receiver};
+use std::sync::mpsc::{self, Receiver, Sender};
 use std::thread;
 
 pub enum WorkerMsg<T> {
@@ -29,7 +29,10 @@ impl<T: Send + 'static> Worker<T> {
             }
         });
 
-        Self { tx, handle: Some(handle) }
+        Self {
+            tx,
+            handle: Some(handle),
+        }
     }
 
     pub fn send(&self, value: T) -> Result<(), mpsc::SendError<WorkerMsg<T>>> {

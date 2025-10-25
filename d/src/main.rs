@@ -37,5 +37,4 @@ fn main() {
         }
     }
     println!("{:#?}", project);
-    cmd;
 }

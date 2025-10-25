@@ -116,8 +116,14 @@ mod tests {
         let source = b"a,b,c\nd,e,f\n";
         let mut iter = RowIterator::new(source, b',');
 
-        assert_eq!(iter.next(), Some(vec![b"a".to_vec(), b"b".to_vec(), b"c".to_vec()]));
-        assert_eq!(iter.next(), Some(vec![b"d".to_vec(), b"e".to_vec(), b"f".to_vec()]));
+        assert_eq!(
+            iter.next(),
+            Some(vec![b"a".to_vec(), b"b".to_vec(), b"c".to_vec()])
+        );
+        assert_eq!(
+            iter.next(),
+            Some(vec![b"d".to_vec(), b"e".to_vec(), b"f".to_vec()])
+        );
         assert_eq!(iter.next(), None);
     }
 
@@ -130,7 +136,7 @@ mod tests {
         assert_eq!(iter.next(), Some(vec![b"x,y".to_vec(), b"z".to_vec()]));
         assert_eq!(iter.next(), None);
     }
-    
+
     #[test]
     fn test_escaping() {
         let source = b"a\\,b,c\n\"x\\\"y\",z\n";

@@ -1,5 +1,5 @@
 use crate::impls::LogWriter;
-use crate::{LogLevel, LogRecord};
+use crate::LogRecord;
 use std::io::Write;
 
 pub(crate) struct SimpleLogWriter {

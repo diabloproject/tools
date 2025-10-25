@@ -5,5 +5,5 @@
 #![feature(const_convert)]
 pub mod iter;
 pub mod statik;
-pub mod time;
 pub mod sync;
+pub mod time;

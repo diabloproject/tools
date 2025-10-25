@@ -8,7 +8,7 @@ pub struct Project<'src> {
 }
 
 impl<'src> Project<'src> {
-    pub fn get_evt(&self, ty: EventType) -> Option<&[Variable]> {
+    pub fn get_evt(&self, ty: EventType) -> Option<&[Variable<'_>]> {
         let tt = ty;
         let block = self.blocks.iter().find(|b| match b {
             Block::Event { ty, content } => tt == *ty,

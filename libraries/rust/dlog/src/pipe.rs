@@ -10,14 +10,9 @@ pub(crate) fn start_pipe_listener(
     let pipe_addr = format!("127.0.0.1:{}", addr.port());
 
     std::thread::spawn(move || {
-        for stream in listener.incoming() {
-            match stream {
-                Ok(stream) => {
-                    let tx = log_tx.clone();
-                    std::thread::spawn(move || handle_client(stream, tx));
-                }
-                Err(_) => {}
-            }
+        for stream in listener.incoming().flatten() {
+            let tx = log_tx.clone();
+            std::thread::spawn(move || handle_client(stream, tx));
         }
     });
 

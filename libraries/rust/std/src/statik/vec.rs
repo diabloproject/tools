@@ -177,6 +177,7 @@ impl<T: Copy, const CAPACITY: usize> From<StaticVec<T, CAPACITY>> for Vec<T> {
     }
 }
 
+#[macro_export]
 macro_rules! static_vec {
     [$( $arg: expr ), *] => {
         const {

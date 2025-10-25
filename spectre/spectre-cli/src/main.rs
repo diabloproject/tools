@@ -7,11 +7,11 @@ use std::sync::Arc;
 use stdd::sync::worker::Worker;
 
 fn main() {
-    let server_uri =
-        std::env::var("SPECTRE_API_URI").unwrap_or_else(|_| "https://diabloproject.space/spectre/api".to_string());
+    let server_uri = std::env::var("SPECTRE_API_URI")
+        .unwrap_or_else(|_| "https://diabloproject.space/spectre/api".to_string());
     let client = Client::new();
     let args = std::env::args().skip(1).collect::<Vec<_>>();
-    let executable = args.get(0).unwrap().clone();
+    let executable = args.first().unwrap().clone();
     let response = client
         .post(format!("{}/push", server_uri))
         .body(
@@ -36,7 +36,7 @@ fn main() {
     let mut leftovers: Vec<u8> = vec![];
     let mut buf: [u8; 1] = [0; 1];
     let mut stdout = child.stdout.take().expect("Failed to get stdout");
-    while let Ok(_) = stdout.read_exact(&mut buf) {
+    while stdout.read_exact(&mut buf).is_ok() {
         leftovers.extend_from_slice(&buf);
         while let Some(idx) = leftovers.iter().position(|&b| b == b'\n') {
             let temp = leftovers.split_off(idx);

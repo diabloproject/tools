@@ -1,4 +1,3 @@
-use std::io::Write;
 use yson::lexer::{YsonLexError, YsonLexer};
 use yson::parser::{YsonParseError, YsonParser};
 use yson::types::YsonValue;
@@ -9,7 +8,7 @@ pub struct ReplayRow {
     pub log: String,
 }
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Default)]
 pub struct Replay {
     pub rows: Vec<ReplayRow>,
     pub client: String,
@@ -27,7 +26,7 @@ impl Replay {
         let mut rows = String::new();
         for row in &self.rows {
             rows.push_str(&self.write_yson_replay_row(row));
-            rows.push_str(";");
+            rows.push(';');
         }
 
         format!("{{rows=[{}];client={:?};}}", rows, self.client)
@@ -227,5 +226,4 @@ mod tests {
 
         assert_eq!(original_replay, deserialized_replay);
     }
-
 }

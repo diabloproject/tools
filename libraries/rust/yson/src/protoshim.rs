@@ -105,7 +105,7 @@ impl<E: Error> fmt::Display for ProtoshimError<E> {
                     write!(f, " ...")?;
                 }
 
-                write!(f, "\n")?;
+                writeln!(f)?;
 
                 // Print pointer to error position
                 let mut spaces = 0;
@@ -116,22 +116,22 @@ impl<E: Error> fmt::Display for ProtoshimError<E> {
                     spaces += 4; // "0x??"
                 }
 
-                write!(f, "{:width$}|\n", "", width = spaces + 1)?;
-                write!(f, "At byte here {}\n", "—".repeat(spaces).trim_end())?;
+                writeln!(f, "{:width$}|", "", width = spaces + 1)?;
+                writeln!(f, "At byte here {}", "—".repeat(spaces).trim_end())?;
 
                 if *error_position < input.len() {
                     let error_byte = input[*error_position];
-                    write!(
+                    writeln!(
                         f,
-                        "0x{:02X} & 0x80 == {}, therefore we must continue\n",
+                        "0x{:02X} & 0x80 == {}, therefore we must continue",
                         error_byte,
                         (error_byte & 0x80) != 0
                     )?;
                 }
 
-                write!(
+                writeln!(
                     f,
-                    "But, {} will overflow if tried to include one more byte\n",
+                    "But, {} will overflow if tried to include one more byte",
                     data_type
                 )?;
                 write!(
