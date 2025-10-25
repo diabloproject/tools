@@ -1,3 +1,5 @@
+pub mod strip_ansi_escape;
+
 pub mod sequences {
     pub const CSI: u8 = b'[';
     pub const DELIMITER: u8 = b';';

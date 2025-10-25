@@ -9,6 +9,7 @@ use replay::Replay;
 use std::collections::HashMap;
 use std::sync::{Arc, Mutex};
 use std::time::{SystemTime, UNIX_EPOCH};
+use tower_http::cors::{Any, CorsLayer};
 
 type AppState = Arc<Mutex<HashMap<String, (u64, Replay)>>>;
 
@@ -16,15 +17,20 @@ type AppState = Arc<Mutex<HashMap<String, (u64, Replay)>>>;
 async fn main() {
     let state: AppState = Arc::new(Mutex::new(HashMap::new()));
 
+    let cors = CorsLayer::new().allow_origin(Any).allow_methods(Any);
+
     let app = Router::new()
         .route("/push", post(push_handler))
         .route("/append/{id}", post(append_handler))
         .route("/display/{id}", get(display_handler))
         .route("/history", get(history_handler))
+        .layer(cors)
         .with_state(state);
 
-    let listener = tokio::net::TcpListener::bind("0.0.0.0:3000").await.unwrap();
-    println!("Server running on http://0.0.0.0:3000");
+    let listener = tokio::net::TcpListener::bind("0.0.0.0:56742")
+        .await
+        .unwrap();
+    println!("Server running on http://0.0.0.0:56742");
     axum::serve(listener, app).await.unwrap();
 }
 

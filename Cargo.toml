@@ -15,8 +15,8 @@ members = [
     "libraries/rust/terminal-size",
     "libraries/rust/tui-elements",
     "libraries/rust/yson",
-    "spectre/spectre-api",
-    "spectre/spectre-cli"
+    "spectre/api",
+    "spectre/cli"
 ]
 resolver = "3"
 
