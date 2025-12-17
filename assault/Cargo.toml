@@ -1,0 +1,28 @@
+[package]
+name = "assault"
+version = "0.1.0"
+edition = "2024"
+autobins = false
+autolib = false
+
+[lib]
+name = "assault"
+crate-type = ["staticlib", "rlib"]
+path = "mod.rs"
+
+[[bin]]
+name = "live"
+path = "live/bin/main.rs"
+
+
+[dependencies]
+pixels = "0.15.0"
+windows = { version = "0.62.2", features = [
+    "Win32_System_LibraryLoader",
+    "Win32_Foundation",
+    "Win32_Graphics_Dxgi",
+    "Win32_Graphics_Dxgi_Common",
+    "Win32_Graphics_Direct3D",
+    "Win32_Graphics_Direct3D11"
+] }
+winit = "0.30.12"

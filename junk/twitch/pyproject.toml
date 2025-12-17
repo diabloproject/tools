@@ -1,0 +1,14 @@
+[project]
+name = "twitch"
+version = "0.1.0"
+description = "Add your description here"
+requires-python = ">=3.12"
+dependencies = [
+    "opentelemetry-api==1.38.0",
+    "opentelemetry-instrumentation-logging==0.59b0",
+    "opentelemetry-instrumentation-pika==0.59b0",
+    "opentelemetry-sdk==1.38.0",
+    "requests==2.32.5",
+    "twitchio==3.1.0",
+    "ydb==3.21.14",
+]

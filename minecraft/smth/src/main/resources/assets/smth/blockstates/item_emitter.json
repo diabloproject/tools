@@ -1,0 +1,10 @@
+{
+  "variants": {
+    "facing=north": { "model": "smth:block/item_emitter", "y": 180 },
+    "facing=south": { "model": "smth:block/item_emitter" },
+    "facing=west":  { "model": "smth:block/item_emitter", "y": 90 },
+    "facing=east":  { "model": "smth:block/item_emitter", "y": 270 },
+    "facing=up":    { "model": "smth:block/item_emitter", "x": 90 },
+    "facing=down":  { "model": "smth:block/item_emitter", "x": -90 }
+  }
+}

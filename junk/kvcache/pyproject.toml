@@ -1,0 +1,13 @@
+[project]
+name = "kvcache"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "accelerate>=1.11.0",
+    "bitsandbytes>=0.48.2",
+    "hf-xet>=1.2.0",
+    "torch>=2.8.0",
+    "transformers>=4.57.1",
+]

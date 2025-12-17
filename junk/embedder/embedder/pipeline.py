@@ -95,7 +95,8 @@ def run_pipeline(
     # Sample texts if requested
     original_count = len(texts)
     if sample_factor is not None and sample_factor < 1.0:
-        texts, sampled_indices = sample_texts(texts, sample_factor, random_seed)
+        texts, sampled_indices = sample_texts(
+            texts, sample_factor, random_seed)
         logger.info(
             f"Sampled {len(texts)} texts from {original_count} ({sample_factor*100:.1f}%)"
         )
@@ -114,20 +115,24 @@ def run_pipeline(
         method_tag = "umap"
     elif method == "autoencoder":
         logger.info("Training autoencoder")
-        model, embed_3d = train_autoencoder(embeddings, device=device, **ae_params)
+        model, embed_3d = train_autoencoder(
+            embeddings, device=device, **ae_params)
         method_tag = "autoencoder"
         if save_prefix:
-            torch.save(model.state_dict(), output_dir / f"{save_prefix}_ae_state.pt")
-            logger.info(f"Saved model to {output_dir / f'{save_prefix}_ae_state.pt'}")
+            torch.save(model.state_dict(), output_dir /
+                       f"{save_prefix}_ae_state.pt")
+            logger.info(
+                f"Saved model to {output_dir / f'{save_prefix}_ae_state.pt'}")
     else:
-        raise ValueError(f"Unknown method: {method}. Choose 'umap' or 'autoencoder'")
+        raise ValueError(
+            f"Unknown method: {method}. Choose 'umap' or 'autoencoder'")
 
-    try:
-        trust = trustworthiness(embeddings, embed_3d, n_neighbors=12)
-        logger.info(f"Trustworthiness (k=12): {trust:.4f}")
-    except Exception as e:
-        logger.warning(f"Could not compute trustworthiness: {e}")
-        trust = None
+    # try:
+    #     trust = trustworthiness(embeddings, embed_3d, n_neighbors=12)
+    #     logger.info(f"Trustworthiness (k=12): {trust:.4f}")
+    # except Exception as e:
+    #     logger.warning(f"Could not compute trustworthiness: {e}")
+    #     trust = None
 
     rows, df = make_results(texts, embeddings, embed_3d)
 
@@ -147,7 +152,8 @@ def run_pipeline(
 
         # Save sampling metadata if used
         if sample_factor is not None and sample_factor < 1.0:
-            metadata_file = output_dir / f"{save_prefix}_{method_tag}_metadata.json"
+            metadata_file = output_dir / \
+                f"{save_prefix}_{method_tag}_metadata.json"
             import json
 
             metadata = {
@@ -165,6 +171,7 @@ def run_pipeline(
 
     if visualize:
         html_file = output_dir / f"{save_prefix}_{method_tag}_viz.html"
-        visualize_embeddings(texts, embed_3d, save_html=str(html_file), **viz_params)
+        visualize_embeddings(
+            texts, embed_3d, save_html=str(html_file), **viz_params)
 
     return rows, df, embeddings, embed_3d

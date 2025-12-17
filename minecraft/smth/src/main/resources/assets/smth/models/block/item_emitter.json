@@ -1,0 +1,12 @@
+{
+  "parent": "block/cube",
+  "textures": {
+    "particle": "smth:block/other",
+    "north": "smth:block/front",
+    "south": "smth:block/other",
+    "east": "smth:block/other",
+    "west": "smth:block/other",
+    "up": "smth:block/other",
+    "down": "smth:block/other"
+  }
+}

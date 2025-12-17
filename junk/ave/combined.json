@@ -1,0 +1,269 @@
+[
+  {
+    "table": "public.video_file_duplicates",
+    "granularity": "one row represents a pair of files where one is a duplicate of the other",
+    "purpose": "stores pairs of duplicate video files",
+    "passage": "the table stores relationships between video files, indicating which files are duplicates of each other; each row represents a pair of files where one file has the identifier file_id and the other has duplicate_id",
+    "columns": [
+      {
+        "name": "file_id",
+        "type": "uuid",
+        "description": "unique identifier of the video file that has a duplicate",
+        "units": null,
+        "is_pk": true,
+        "is_fk": true,
+        "references": "public.video_files.id",
+        "passage": "identifier of the original video file; PK, FK to the video_files table; can be used as a key to search for all duplicates",
+        "hint": "FK to public.video_files.id. Values often repeat; use COUNT(DISTINCT file_id) in counts. Join via video_files.id."
+      },
+      {
+        "name": "duplicate_id",
+        "type": "uuid",
+        "description": "unique identifier of the video file that is a duplicate",
+        "units": null,
+        "is_pk": true,
+        "is_fk": true,
+        "references": "public.video_files.id",
+        "passage": "identifier of the duplicate video file; PK, FK to the video_files table; indicates which file is a copy of the original",
+        "hint": "FK to public.video_files.id. High repeatability; for duplicate metrics use COUNT(DISTINCT duplicate_id). Pairs are directional — deduplicate when necessary."
+      }
+    ],
+    "relationships": [
+      {
+        "from": "duplicate_id",
+        "to_table": "public.video_files",
+        "to_column": "id",
+        "type": "many-to-one"
+      },
+      {
+        "from": "file_id",
+        "to_table": "public.video_files",
+        "to_column": "id",
+        "type": "many-to-one"
+      }
+    ]
+  },
+  {
+    "table": "public.video_file_metadata",
+    "granularity": "one row represents metadata for a single video file",
+    "purpose": "Stores tactical and technical metadata for each video file (drone, operator, crew, communication frequencies, warhead type, target type, departure time and flight status), linked to a record in public.video_files and used for analytics and search.",
+    "passage": "One row represents metadata for a single video file. The table supplements public.video_files with information about the operator (unique_operator_code, unique_calculation_code), platform (type, fpv_serial_number), communication channels (video_frequency, control_frequency), warhead and fuse (warhead_type, fuse_type), target type (target_character), as well as time and secondary mission execution status (departure_time, flight_status). Used for analytics on drones, operators, tactical-technical parameters, target types, and for filtering/searching videos by these attributes.",
+    "columns": [
+      {
+        "name": "video_file_id",
+        "type": "uuid",
+        "description": "Video file identifier",
+        "units": null,
+        "is_pk": true,
+        "is_fk": true,
+        "references": "public.video_files.id",
+        "passage": "Unique video file identifier, reference to the video files table",
+        "hint": "PK/FK to public.video_files.id; unique in the table. Primary JOIN key; aggregate on metadata before JOIN to avoid multiplication."
+      },
+      {
+        "name": "departure_time",
+        "type": "timestamp without time zone",
+        "description": "Departure date and time",
+        "units": "ISO-8601",
+        "is_pk": false,
+        "is_fk": false,
+        "references": null,
+        "passage": "Flight start time, departure date and time",
+        "hint": "Time axis; aggregate via date_trunc('month'|'week'|'day'). Interpret intervals as [start,end)."
+      },
+      {
+        "name": "type",
+        "type": "character varying",
+        "description": "Drone type",
+        "units": null,
+        "is_pk": false,
+        "is_fk": false,
+        "references": null,
+        "passage": "Model or type of drone used",
+        "hint": "Categorical; possible case and spelling variations. Apply ILIKE filters, partial matches (%name%) and lower(unaccent()), always search for matches via lowercase. Normalize for grouping."
+      },
+      {
+        "name": "unique_operator_code",
+        "type": "character varying",
+        "description": "Unique operator code",
+        "units": null,
+        "is_pk": false,
+        "is_fk": false,
+        "references": null,
+        "passage": "Operator identifier, unique code",
+        "hint": "Operator code; filter by exact match, consider NULL. Primary attribute for GROUP BY operator."
+      },
+      {
+        "name": "unique_calculation_code",
+        "type": "character varying",
+        "description": "Unique crew code",
+        "units": null,
+        "is_pk": false,
+        "is_fk": false,
+        "references": null,
+        "passage": "Combat crew code, unique identifier",
+        "hint": "Crew code; text with possible gaps. Filter by equality; don't count unique missions without video_file_id binding."
+      },
+      {
+        "name": "fpv_serial_number",
+        "type": "character varying",
+        "description": "FPV drone identifier (serial number)",
+        "units": null,
+        "is_pk": false,
+        "is_fk": false,
+        "references": null,
+        "passage": "FPV drone serial number",
+        "hint": "Device serial number; global uniqueness not guaranteed. Filter by equality; don't use as default grouping."
+      },
+      {
+        "name": "video_frequency",
+        "type": "integer",
+        "description": "Video transmitter operating frequency",
+        "units": "Hz",
+        "is_pk": false,
+        "is_fk": false,
+        "references": null,
+        "passage": "Operating frequency of the image transmission module, in hertz",
+        "hint": "Numeric field (Hz); range filters. Convert to number, consider NULL."
+      },
+      {
+        "name": "control_frequency",
+        "type": "integer",
+        "description": "Control frequency",
+        "units": "Hz",
+        "is_pk": false,
+        "is_fk": false,
+        "references": null,
+        "passage": "Control signal transmission module frequency, in hertz",
+        "hint": "Numeric field (Hz); range filters, consider NULL."
+      },
+      {
+        "name": "warhead_type",
+        "type": "character varying",
+        "description": "Warhead type (ammunition)",
+        "units": null,
+        "is_pk": false,
+        "is_fk": false,
+        "references": null,
+        "passage": "Warhead type, ammunition type",
+        "hint": "Categorical; possible spelling variations. Use ILIKE filters and partial matches; normalize case/spaces for grouping."
+      },
+      {
+        "name": "fuse_type",
+        "type": "character varying",
+        "description": "Fuse type (detonator, warhead activator)",
+        "units": null,
+        "is_pk": false,
+        "is_fk": false,
+        "references": null,
+        "passage": "Detonator type, fuse type",
+        "hint": "Categorical; use ILIKE for search; normalize values when grouping."
+      },
+      {
+        "name": "target_character",
+        "type": "character varying",
+        "description": "Target type (detailed) as reported by operator. Contains precise and specific target designation.",
+        "units": null,
+        "is_pk": false,
+        "is_fk": false,
+        "references": null,
+        "passage": "Target type (detailed, refined) intended to be engaged",
+        "hint": "Free text/category; use ILIKE for filters; normalize case/spaces for analytics."
+      },
+      {
+        "name": "flight_status",
+        "type": "character varying",
+        "description": "Secondary combat mission execution status. Value 'Completed' means successful mission completion, all others mean mission not completed. Filled in based on operator report, may be incorrect.",
+        "units": null,
+        "is_pk": false,
+        "is_fk": false,
+        "references": null,
+        "passage": "Combat mission execution status",
+        "hint": "Use only if the query explicitly contains 'flight status'; in all other cases use hit_estimate from public.video_files table to evaluate mission completion. Use CASE in calculations; consider possible NULL."
+      }
+    ],
+    "relationships": [
+      {
+        "from": "video_file_id",
+        "to_table": "public.video_files",
+        "to_column": "id",
+        "type": "many-to-one"
+      }
+    ]
+  },
+  {
+    "table": "public.video_files",
+    "granularity": "one row represents a video file record",
+    "purpose": "Stores metadata and machine learning algorithm processing results for videos.",
+    "passage": "Table with information about video files, their statuses, metadata, processing results, and links to related files",
+    "columns": [
+      {
+        "name": "id",
+        "type": "uuid",
+        "description": "Unique record identifier",
+        "units": null,
+        "is_pk": true,
+        "is_fk": false,
+        "references": null,
+        "passage": "Video file record identifier",
+        "hint": "PK; unique. JOIN key to metadata (video_file_metadata.video_file_id) and duplicates."
+      },
+      {
+        "name": "status",
+        "type": "integer",
+        "description": "Processing status code",
+        "units": null,
+        "is_pk": false,
+        "is_fk": false,
+        "references": null,
+        "passage": "Status, state of video processing by our system's ML modules",
+        "hint": "Technical ML status; usually don't use in mission analytics. Don't confuse with flight_status from metadata. Value map: 1 -> 'Awaiting metadata', 2 -> 'Awaiting video file', 4 -> 'Analysis in progress', 9 -> 'Analysis completed with error', 10 -> 'Analysis completed successfully'"
+      },
+      {
+        "name": "ml_status_message",
+        "type": "character varying",
+        "description": "Status text explanation",
+        "units": null,
+        "is_pk": false,
+        "is_fk": false,
+        "references": null,
+        "passage": "Processing status description",
+        "hint": "Free text; ILIKE filters; don't use in GROUP BY/aggregations."
+      },
+      {
+        "name": "has_duplicates",
+        "type": "boolean",
+        "description": "Duplicates found",
+        "units": null,
+        "is_pk": false,
+        "is_fk": false,
+        "references": null,
+        "passage": "Indicator of duplicate presence",
+        "hint": "Quick indicator; for precise counts rely on public.video_file_duplicates."
+      },
+      {
+        "name": "hit_estimate",
+        "type": "numeric",
+        "description": "Primary target engagement indicator. Probability of hitting the target. Values from 0 to 1.",
+        "units": null,
+        "is_pk": false,
+        "is_fk": false,
+        "references": null,
+        "passage": "Primary column for determining combat mission completion",
+        "hint": "Primary column for evaluating mission effectiveness and success. Ratio 0..1; aggregate AVG/percentiles; multiply by 100% for output. Replace NULL values with 0.001 in queries. For success evaluation use value map: value < 0.4 - mission not completed, >= 0.4 - mission completed."
+      },
+      {
+        "name": "target_object",
+        "type": "character varying",
+        "description": "Object class (general) that was planned for engagement according to the ML detection module.",
+        "units": null,
+        "is_pk": false,
+        "is_fk": false,
+        "references": null,
+        "passage": "Object class that was planned for engagement",
+        "hint": "Free text from ML; ILIKE filters; normalize case/spaces when grouping."
+      }
+    ],
+    "relationships": []
+  }
+]

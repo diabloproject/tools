@@ -1,0 +1,18 @@
+{
+    "language": "python",
+    "type": "executable",
+    "includes": [
+        "libraries/python/ml/sequence_datasets",
+        "vendor/ffmpeg"
+    ],
+    "extras": [
+        {
+            "step": "uv",
+            "pyproject": "junk/pymc/pyproject.toml"
+        },
+        {
+            "step": "system",
+            "command": "echo 1"
+        }
+    ]
+}

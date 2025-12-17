@@ -1,0 +1,11 @@
+[project]
+name = "twitch-ingest"
+version = "0.1.0"
+description = "Twitch ingestion module"
+requires-python = ">=3.13"
+dependencies = [
+    "opentelemetry-distro>=0.59b0",
+    "opentelemetry-exporter-otlp-proto-grpc>=1.38.0",
+    "opentelemetry-instrumentation-fastapi>=0.59b0",
+    "twitchio>=3.1.0",
+]

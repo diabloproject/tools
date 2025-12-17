@@ -1,0 +1,7 @@
+{
+    "language": "python",
+    "type": "library",
+    "includes": [
+        "libraries/python/http"
+    ]
+}
