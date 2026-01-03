@@ -10,3 +10,7 @@ spec:
   resources:
     requests:
       storage: 5Gi
+  # Use this for manual local PV (uncomment and use with pv-local.yaml)
+  storageClassName: manual
+  # Or use this for dynamic provisioning (uncomment and comment out manual above)
+  # storageClassName: standard
