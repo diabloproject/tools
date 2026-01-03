@@ -1,0 +1,10 @@
+node_modules
+.next
+k8s
+pastes
+.gitignore
+.git
+build-and-push.sh
+build-and-push.ps1
+Dockerfile
+README.md

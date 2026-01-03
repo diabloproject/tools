@@ -1,0 +1,19 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: paste-ingress
+  labels:
+    app: paste
+spec:
+  ingressClassName: nginx
+  rules:
+  - host: paste.diabloproject.space
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: paste-service
+            port:
+              number: 80

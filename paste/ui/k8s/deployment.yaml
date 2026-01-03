@@ -1,0 +1,56 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: paste-app
+  labels:
+    app: paste
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: paste
+  template:
+    metadata:
+      labels:
+        app: paste
+    spec:
+      containers:
+      - name: paste
+        image: ghcr.io/diabloproject/paste:latest
+        imagePullPolicy: IfNotPresent
+        ports:
+        - containerPort: 3000
+          name: http
+        env:
+        - name: NODE_ENV
+          value: "production"
+        - name: PORT
+          value: "3000"
+        - name: HOSTNAME
+          value: "0.0.0.0"
+        volumeMounts:
+        - name: pastes-storage
+          mountPath: /app/pastes
+        resources:
+          requests:
+            memory: "256Mi"
+            cpu: "100m"
+          limits:
+            memory: "512Mi"
+            cpu: "500m"
+        livenessProbe:
+          httpGet:
+            path: /
+            port: 3000
+          initialDelaySeconds: 30
+          periodSeconds: 10
+        readinessProbe:
+          httpGet:
+            path: /
+            port: 3000
+          initialDelaySeconds: 5
+          periodSeconds: 5
+      volumes:
+      - name: pastes-storage
+        persistentVolumeClaim:
+          claimName: pastes-pvc
