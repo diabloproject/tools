@@ -6,6 +6,7 @@ use std::sync::Arc;
 use std::time::{Duration, Instant};
 use tokio::sync::Semaphore;
 use tonic::transport::Channel;
+use engine_proto::engine::logic_service_client::LogicServiceClient;
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
@@ -69,7 +70,7 @@ async fn bench_push_pixel(
     
     let mut clients = Vec::new();
     for i in 0..pool_size {
-        match DataServiceClient::connect("http://127.0.0.1:50051").await {
+        match LogicServiceClient::connect("http://127.0.0.1:50051").await {
             Ok(c) => clients.push(Arc::new(tokio::sync::Mutex::new(c))),
             Err(e) => {
                 eprintln!("Failed to create connection {}: {}", i, e);
@@ -108,15 +109,16 @@ async fn bench_push_pixel(
                 let y = rng.gen_range(0..512);
                 let color = rng.gen_range(0..256);
 
-                let request = PushPixelRequest {
+                let request = TriggerEventRequest {
                     x,
                     y,
                     color,
                     user_id: worker_id as u64,
+                    ty: 1,
                 };
 
                 let mut c = client.lock().await;
-                if c.push_pixel(request).await.is_ok() {
+                if c.trigger_event(request).await.is_ok() {
                     worker_requests += 1;
                 }
             }

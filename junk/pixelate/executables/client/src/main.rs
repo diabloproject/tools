@@ -9,6 +9,7 @@ use std::sync::Arc;
 use tokio::sync::Mutex;
 use crossbeam_channel::{unbounded, Receiver, TryRecvError};
 use tokio::runtime::Runtime;
+use engine_proto::engine::logic_service_client::LogicServiceClient;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Resource)]
 enum RenderMode {
@@ -646,14 +647,15 @@ fn handle_input(
 }
 
 async fn push_pixel(x: i64, y: i64, color: u32, user_id: u64, client: Arc<Mutex<DataServiceClient<Channel>>>) {
-    let request = tonic::Request::new(PushPixelRequest {
+    let request = tonic::Request::new(TriggerEventRequest {
         x,
         y,
         color,
         user_id,
+        ty: 1,
     });
-    let mut client = client.lock().await;
-    let _ = client.push_pixel(request).await;
+    let mut logic_client = LogicServiceClient::connect("http://localhost:50052").await.unwrap();
+    let _ = logic_client.trigger_event(request).await.unwrap();
 }
 
 #[derive(Resource)]

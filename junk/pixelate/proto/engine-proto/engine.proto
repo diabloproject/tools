@@ -42,3 +42,27 @@ service DataService {
   rpc PixelInfo(PixelInfoRequest) returns (PixelInfoResponse);
   rpc Snapshot(SnapshotRequest) returns (SnapshotResponse);
 }
+
+
+enum EventType {
+  EVT_PLACE_EXTRA = 0;
+  EVT_PLACE_PIXEL = 1;
+}
+
+
+message TriggerEventRequest {
+  sint64 x = 1;
+  sint64 y = 2;
+  uint64 userId = 3;
+  EventType ty = 4;
+  uint32 color = 5;
+}
+
+message TriggerEventResponse {
+
+}
+
+
+service LogicService {
+  rpc TriggerEvent(TriggerEventRequest) returns (TriggerEventResponse);
+}

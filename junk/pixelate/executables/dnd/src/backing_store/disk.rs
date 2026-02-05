@@ -27,7 +27,7 @@ pub struct DiskBackingStore {
 }
 
 impl DiskBackingStore {
-    pub fn new(frame: Frame, data_dir: impl AsRef<Path>, initializer: fn(i64, i64) -> PixelInfo) -> io::Result<Self> {
+    pub fn new(frame: Frame, data_dir: impl AsRef<Path>, _initializer: fn(i64, i64) -> PixelInfo) -> io::Result<Self> {
         let data_dir = data_dir.as_ref().to_path_buf();
         let chunk_size = 256; // 256x256 pixels per chunk = 65,536 pixels per file
         
@@ -53,9 +53,6 @@ impl DiskBackingStore {
             chunk_handles: RwLock::new(HashMap::new()),
             cache_size: 10000, // Keep 10000 pixels in cache
         };
-
-        // Initialize chunks - only create chunk files as needed (lazy initialization)
-        // This allows for sparse storage where empty regions don't use disk space
 
         debug!("Disk backing store initialized (using lazy chunk creation)");
         Ok(store)

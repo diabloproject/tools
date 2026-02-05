@@ -1,6 +1,6 @@
 [workspace]
 resolver = "3"
-members = ["executables/dnd", "executables/client", "executables/bench", "proto/engine-proto"]
+members = ["executables/dnd", "executables/client", "executables/bench", "proto/engine-proto", "executables/end", "executables/und"]
 
 
 [workspace.dependencies]

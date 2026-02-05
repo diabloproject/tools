@@ -5,9 +5,8 @@ mod types;
 
 use std::sync::Arc;
 use std::time::{Duration, Instant, UNIX_EPOCH};
-use tokio::sync::broadcast;
 use tokio_stream::wrappers::BroadcastStream;
-use tokio_stream::{Stream, StreamExt};
+use tokio_stream::{StreamExt};
 use tonic::{Request, Response, Status, transport::Server};
 
 use engine_proto::engine::data_service_server::{DataService, DataServiceServer};
@@ -142,6 +141,7 @@ impl DataService for DataNode {
         &self,
         request: Request<PushPixelRequest>,
     ) -> Result<Response<PushPixelResponse>, Status> {
+        info!("Push pixel request: {:?}", request);
         let start = Instant::now();
         let req = request.into_inner();
         
