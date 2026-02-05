@@ -45,12 +45,20 @@ def split_image_into_patches(image: torch.Tensor) -> torch.Tensor:
 def create_sobel_kernels() -> Tuple[torch.Tensor, torch.Tensor]:
     """Create Sobel kernels for gradient computation."""
     sobel_x = torch.tensor(
-        [[-1, 0, 1], [-2, 0, 2], [-1, 0, 1]],
+        [
+            [-1, 0, 1],
+            [-2, 0, 2],
+            [-1, 0, 1]
+        ],
         dtype=torch.float32
     ).view(1, 1, 3, 3)
 
     sobel_y = torch.tensor(
-        [[-1, -2, -1], [0, 0, 0], [1, 2, 1]],
+        [
+            [-1, -2, -1],
+            [ 0,  0,  0],
+            [ 1,  2,  1]
+        ],
         dtype=torch.float32
     ).view(1, 1, 3, 3)
 
@@ -109,12 +117,15 @@ def visualize_gradients(image: torch.Tensor, display_image: Any) -> Any:
             direction, magnitude = compute_gradient(patch, sobel_x, sobel_y)
             dm[row, col] = torch.tensor([direction[0], direction[1], magnitude])
 
-    dm2 = dm.clone()
+    dm2 = torch.ones_like(dm)
 
     k = torch.tensor([0., 0., 1.])
-    for i in range(1000):
-        dm = dm2.clone()
-        dm2 = dm.clone()
+    # for i in range(1000):
+    first = True
+    while ((dm2/dm).mean() - 1).abs() > 0.1:
+        if not first:
+            dm = dm2.clone()
+            dm2 = dm.clone()
         for row in range(GRID_SIZE - 1):
             for col in range(GRID_SIZE - 1):
                 row_indices = torch.arange(GRID_SIZE).unsqueeze(1).expand(-1, GRID_SIZE)
@@ -133,12 +144,13 @@ def visualize_gradients(image: torch.Tensor, display_image: Any) -> Any:
 
                 ri_n = torch.cross(directions, scaling, dim=2)
 
-                fi = dm[:, :, 2] / (vectors.norm(dim=2)) ** 3
+                fi = dm[:, :, 2] / (vectors.norm(dim=2) * DISTANCE_PER_PIXEL) ** 3
                 fi[fi == torch.inf] = 0
                 fit = torch.stack([fi, fi, fi], dim=2)
                 r_n = (ri_n * fit).reshape(-1, 3).sum(dim=0) / fi.sum()
 
                 dm2[row, col, :2] = (r_n[:2] * ENVIRONMENT_FACTOR / dm[row, col, 2]) + dm[row, col, :2]
+                dm2[row, col, 2] = dm[row, col, 2]
 
         ndi = display_image.copy()
         for row in range(GRID_SIZE - 1):
