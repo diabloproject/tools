@@ -1,0 +1,12 @@
+ON:BUILD DO
+    USE CARGO
+    PUSHARG --release
+    PUSHARG -p spectre-api
+    CALL CARGO-BUILD
+END
+
+ON:DOCKER DO
+    INHERIT #BUILD
+    SELECT_BINARY spectre-api
+    EXPOSE 56742
+END

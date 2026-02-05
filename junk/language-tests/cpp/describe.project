@@ -1,5 +1,16 @@
 ON:BUILD DO
-USE CPP;
-TARGET EXECUTABLE
-CPP_TU main.cpp
+    USE CPP;
+    TARGET EXECUTABLE
+    CPP_INC include/a.h
+    CPP_INC include/b.h
+    CPP_TU main.cpp main
+    CPP_TU lib_a.cpp a
+    CPP_TU lib_b.cpp b
+    CPP_TU lib_b_support.cpp b
+    CALL CPP-COMPILE main
+    CALL CPP-COMPILE a
+    CALL CPP-COMPILE b
+    CALL CPP-LINK exe main a b
+    EXPORT exe
+    DEPENDS libc
 END
