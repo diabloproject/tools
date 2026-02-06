@@ -1,0 +1,29 @@
+# acho configuration
+# Place at:
+#   macOS:   ~/Library/Application Support/acho/config
+#   Linux:   ~/.config/acho/config
+#   Windows: %APPDATA%\acho\config
+
+# Twitch
+rtmp_url = rtmp://live.twitch.tv/app
+stream_key = live_xxxxxxxxxxxxxxxxxxxx
+
+# Video
+width = 1920
+height = 1080
+fps = 30
+video_bitrate = 4500
+# encoder: leave empty for auto-detect (videotoolbox/nvenc/vaapi/x264)
+# encoder = h264_videotoolbox
+
+# Audio
+audio_bitrate = 160
+sample_rate = 44100
+
+# Devices (run `acho --devices` to list available)
+# mic_device = MacBook Pro Microphone
+# system_audio_device = BlackHole 2ch
+
+# Capture offset (Linux x11grab)
+# capture_x = 0
+# capture_y = 0

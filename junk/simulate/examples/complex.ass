@@ -1,0 +1,32 @@
+[Script Info]
+Title: Complex Dialogue Example
+ScriptType: v4.00+
+Collisions: Normal
+PlayDepth: 0
+Timer: 100.0000
+
+[V4+ Styles]
+Format: Name, Fontname, Fontsize, PrimaryColour, SecondaryColour, OutlineColour, BackColour, Bold, Italic, Underline, StrikeOut, ScaleX, ScaleY, Spacing, Angle, BorderStyle, Outline, Shadow, Alignment, MarginL, MarginR, MarginV, Encoding
+Style: Default,Arial,20,&H00FFFFFF,&H000000FF,&H00000000,&H80000000,0,0,0,0,100,100,0,0,1,2,0,2,10,10,10,1
+Style: Narrator,Times New Roman,18,&H00FFFF00,&H000000FF,&H00000000,&H80000000,0,1,0,0,100,100,0,0,1,2,0,2,10,10,10,1
+Style: Hero,Arial,24,&H0000FF00,&H000000FF,&H00000000,&H80000000,-1,0,0,0,100,100,0,0,1,2,0,2,10,10,10,1
+Style: Villain,Arial,22,&H000000FF,&H000000FF,&H00000000,&H80000000,-1,1,0,0,100,100,0,0,1,2,0,2,10,10,10,1
+Style: Crowd,Arial,16,&H00808080,&H000000FF,&H00000000,&H80000000,0,0,0,0,100,100,0,0,1,2,0,2,10,10,10,1
+
+[Events]
+Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
+Dialogue: 0,0:00:00.00,0:00:03.50,Narrator,,0,0,0,,{\i1}Once upon a time, in a distant land...{\i0}
+Dialogue: 0,0:00:04.00,0:00:07.00,Hero,Alexandra,0,0,0,,{\b1}I must find the ancient artifact!{\b0}
+Dialogue: 0,0:00:07.50,0:00:10.00,Default,Mentor,0,0,0,,Be careful, young one.
+Dialogue: 0,0:00:10.50,0:00:14.00,Default,Mentor,0,0,0,,{\i1}The path ahead is treacherous.{\i0}
+Dialogue: 0,0:00:14.50,0:00:17.50,Hero,Alexandra,0,0,0,,I understand the risks.
+Dialogue: 0,0:00:18.00,0:00:21.00,Hero,Alexandra,0,0,0,,But I have no choice.
+Dialogue: 0,0:00:35.00,0:00:38.50,Narrator,,0,0,0,,{\i1}Deep in the forbidden forest...{\i0}
+Dialogue: 0,0:00:39.00,0:00:42.00,Villain,Mordak,0,0,0,,{\b1\i1}So, we meet at last!{\i0\b0}
+Dialogue: 0,0:00:42.50,0:00:45.50,Hero,Alexandra,0,0,0,,{\b1}You!{\b0} I should have known.
+Dialogue: 0,0:00:46.00,0:00:49.50,Villain,Mordak,0,0,0,,{\i1}Did you really think{\i0}...
+Dialogue: 0,0:00:50.00,0:00:53.00,Villain,Mordak,0,0,0,,you could succeed where others failed?
+Dialogue: 0,0:00:53.50,0:00:56.50,Hero,Alexandra,0,0,0,,{\b1}I'm not like the others!{\b0}
+Dialogue: 0,0:01:10.00,0:01:13.00,Crowd,,0,0,0,,{\i1}*distant cheering*{\i0}
+Dialogue: 0,0:01:13.50,0:01:16.50,Narrator,,0,0,0,,{\i1}The battle was won, but at what cost?{\i0}
+Dialogue: 0,0:01:17.00,0:01:20.50,Hero,Alexandra,0,0,0,,{\b1}It's over.{\b0}\N{\i1}Finally... it's over.{\i0}

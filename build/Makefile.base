@@ -1,0 +1,27 @@
+# Common Makefile base for tools/
+# Include this from subdirectory Makefiles
+#
+# NOTE: Define your 'all' target BEFORE including this file,
+# or set .DEFAULT_GOAL after including.
+
+# Compilers
+CC  ?= cc
+AR  ?= ar
+
+# Base flags - include from repo root (tools/)
+CFLAGS ?= -Wall -Wextra -O2
+CFLAGS += -I$(TOOLS_ROOT)
+
+# Platform detection
+UNAME_S := $(shell uname -s)
+
+# DEPS handling: each dep is relative to TOOLS_ROOT
+# e.g., DEPS = acho/platform acho/ipc
+deps:
+	@for dep in $(DEPS); do $(MAKE) -C $(TOOLS_ROOT)/$$dep || exit 1; done
+
+# Common object rule
+%.o: %.c
+	$(CC) $(CFLAGS) -c $< -o $@
+
+.PHONY: deps clean

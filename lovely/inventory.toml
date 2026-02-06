@@ -1,0 +1,23 @@
+[compute.testing]
+host = "wanrus-server"
+user = "diabl"
+setup = """
+df
+"""
+
+[compute.macmini]
+user = "diabl"
+host = "wanrus-macmini"
+setup = """
+df
+"""
+
+[compute.localhost]
+user = "aleksejzmeevyh"
+password = "Charodol123"
+host = "macbook-pro"
+
+[compute.windows]
+user = "diabl"
+password = "Charodol123"
+host = "devilpc-win"

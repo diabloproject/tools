@@ -1,0 +1,32 @@
+[Script Info]
+Title: Sample Dialogue
+ScriptType: v4.00+
+Collisions: Normal
+PlayDepth: 0
+Timer: 100.0000
+Video Aspect Ratio: c1.77778
+Video Zoom: 6
+Video Position: 0
+
+[V4+ Styles]
+Format: Name, Fontname, Fontsize, PrimaryColour, SecondaryColour, OutlineColour, BackColour, Bold, Italic, Underline, StrikeOut, ScaleX, ScaleY, Spacing, Angle, BorderStyle, Outline, Shadow, Alignment, MarginL, MarginR, MarginV, Encoding
+Style: Default,Arial,20,&H00FFFFFF,&H000000FF,&H00000000,&H80000000,0,0,0,0,100,100,0,0,1,2,0,2,10,10,10,1
+Style: Narrator,Arial,18,&H00FFFF00,&H000000FF,&H00000000,&H80000000,0,1,0,0,100,100,0,0,1,2,0,2,10,10,10,1
+Style: Protagonist,Arial,22,&H00FFFFFF,&H000000FF,&H00000000,&H80000000,-1,0,0,0,100,100,0,0,1,2,0,2,10,10,10,1
+
+[Events]
+Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
+Dialogue: 0,0:00:01.00,0:00:04.50,Default,Alice,0,0,0,,Good morning! How did you sleep?
+Dialogue: 0,0:00:05.00,0:00:08.00,Default,Bob,0,0,0,,Pretty well, thanks for asking.
+Dialogue: 0,0:00:08.50,0:00:12.00,Default,Alice,0,0,0,,I had the strangest dream last night.
+Dialogue: 0,0:00:12.50,0:00:15.00,Default,Bob,0,0,0,,Oh really? What was it about?
+Dialogue: 0,0:00:15.50,0:00:19.00,Default,Alice,0,0,0,,{\i1}I was flying over the city{\i0}...
+Dialogue: 0,0:00:19.50,0:00:22.00,Default,Alice,0,0,0,,It felt so real!
+Dialogue: 0,0:00:35.00,0:00:38.00,Narrator,,0,0,0,,{\i1}Several hours later...{\i0}
+Dialogue: 0,0:00:38.50,0:00:41.00,Protagonist,Charlie,0,0,0,,Has anyone seen Alice today?
+Dialogue: 0,0:00:41.50,0:00:44.00,Default,Bob,0,0,0,,She went to the library this morning.
+Dialogue: 0,0:00:44.50,0:00:47.50,Protagonist,Charlie,0,0,0,,{\b1}I need to find her!{\b0} It's urgent.
+Dialogue: 0,0:01:00.00,0:01:03.00,Default,Alice,0,0,0,,Charlie! There you are.
+Dialogue: 0,0:01:03.50,0:01:06.00,Protagonist,Charlie,0,0,0,,Alice, we need to talk.
+Dialogue: 0,0:01:06.50,0:01:09.50,Default,Alice,0,0,0,,What's wrong? You look worried.
+Dialogue: 0,0:01:10.00,0:01:14.00,Protagonist,Charlie,0,0,0,,Remember that project we discussed?\nWell, there's been a development...

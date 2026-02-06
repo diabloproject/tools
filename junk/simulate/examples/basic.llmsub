@@ -1,0 +1,17 @@
+character Wife:
+    Nice, careful character with a loving soul.
+    Descriptions of characters can include multiple lines, like this.
+character Husband:
+    Husband of the wife
+
+Wife said:
+    — Good morning, darling. Do you want breakfast?
+Husband said:
+    — I sure do, my love!
+
+BREAK;
+
+Wife said:
+    — Here you go!
+Husband said:
+    — Thank you!

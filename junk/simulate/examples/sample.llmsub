@@ -1,0 +1,45 @@
+character Narrator:
+    Character appearing in the dialogue. Uses 'Narrator' text style. Displayed in italic text. Minor character
+
+character Bob:
+    Character appearing in the dialogue. Minor character
+
+character Charlie:
+    Character appearing in the dialogue. Uses 'Protagonist' text style. Displayed in bold text. Supporting character
+
+character Alice:
+    Character appearing in the dialogue. Supporting character
+Alice said:
+    Good morning! How did you sleep?
+Bob said:
+    Pretty well, thanks for asking.
+Alice said:
+    I had the strangest dream last night.
+Bob said:
+    Oh really? What was it about?
+Alice said:
+    I was flying over the city...
+    It felt so real!
+
+BREAK;
+
+Narrator said:
+    Several hours later...
+Charlie said:
+    Has anyone seen Alice today?
+Bob said:
+    She went to the library this morning.
+Charlie said:
+    I need to find her! It's urgent.
+
+BREAK;
+
+Alice said:
+    Charlie! There you are.
+Charlie said:
+    Alice, we need to talk.
+Alice said:
+    What's wrong? You look worried.
+Charlie said:
+    Remember that project we discussed?
+    Well, there's been a development...

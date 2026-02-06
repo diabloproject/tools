@@ -1,0 +1,13 @@
+[package]
+name = "pixelate"
+version = "0.1.0"
+edition = "2024"
+default-run="pixelate"
+
+[[bin]]
+name="benchmark"
+path="src/benchmark/main.rs"
+
+[lib]
+
+[dependencies]

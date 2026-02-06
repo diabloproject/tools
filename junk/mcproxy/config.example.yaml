@@ -1,0 +1,44 @@
+# Minecraft Proxy Configuration Example
+
+# Proxy server settings
+proxy:
+  # Address to bind the proxy server
+  bind_address: "127.0.0.1"
+  
+  # Port to listen on (typically 25565, the default Minecraft port)
+  bind_port: 25566
+
+# Upstream server settings
+upstream:
+  # Address of the actual Minecraft server
+  # Can be a hostname or IP address
+  address: "localhost"
+  
+  # Port of the upstream Minecraft server
+  port: 25565
+
+# Future: Plugin configuration (not yet implemented)
+# plugins:
+#   filters:
+#     - name: packet_logger
+#       enabled: true
+#       config:
+#         log_forward: true
+#         log_backward: true
+#         
+#     - name: chat_filter
+#       enabled: true
+#       config:
+#         blocked_words:
+#           - "spam"
+#           - "badword"
+#
+#   mappers:
+#     - name: bandwidth_limiter
+#       enabled: true
+#       config:
+#         max_bytes_per_packet: 32768
+#
+#   injectors:
+#     - name: keep_alive
+#       enabled: false

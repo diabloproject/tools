@@ -1,0 +1,48 @@
+character Narrator:
+    Character appearing in the dialogue. Uses 'Narrator' text style. Displayed in italic text. Minor character
+
+character Alexandra:
+    Character appearing in the dialogue. Uses 'Hero' text style. Displayed in bold text. Supporting character
+
+character Mordak:
+    Character appearing in the dialogue. Uses 'Villain' text style. Displayed in bold text. Displayed in italic text. Minor character
+
+character Mentor:
+    Character appearing in the dialogue. Minor character
+
+character Crowd:
+    Character appearing in the dialogue. Uses 'Crowd' text style. Minor character
+Narrator said:
+    Once upon a time, in a distant land...
+Alexandra said:
+    I must find the ancient artifact!
+Mentor said:
+    Be careful, young one.
+    The path ahead is treacherous.
+Alexandra said:
+    I understand the risks.
+    But I have no choice.
+
+BREAK;
+
+Narrator said:
+    Deep in the forbidden forest...
+Mordak said:
+    So, we meet at last!
+Alexandra said:
+    You! I should have known.
+Mordak said:
+    Did you really think...
+    you could succeed where others failed?
+Alexandra said:
+    I'm not like the others!
+
+BREAK;
+
+Crowd said:
+    *distant cheering*
+Narrator said:
+    The battle was won, but at what cost?
+Alexandra said:
+    It's over.
+    Finally... it's over.
