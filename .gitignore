@@ -7,8 +7,6 @@
 **/target
 **/dist
 **/.gradle
-**/bin
-**/obj
 
 # Python
 **/__pycache__
